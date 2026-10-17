@@ -13,6 +13,95 @@ class RoadmapService:
     """Computes topological roadmaps and prerequisite-gated skill gap analysis."""
 
     @staticmethod
+    def detect_cycles(prerequisites: Any) -> Tuple[bool, List[str]]:
+        """
+        Detects directed cycles in the prerequisite dependency graph.
+
+        Args:
+            prerequisites: Collection of (prereq, advanced) tuples or dicts containing
+                           prerequisite and advanced skill identifiers.
+                           Edge direction: prereq -> advanced (prereq must precede advanced).
+
+        Returns:
+            Tuple[bool, List[str]]:
+                - has_cycle: True if a directed cycle was detected, False otherwise.
+                - cycle_path: Ordered list of skill names representing the cycle
+                              (e.g. ['Python', 'Machine Learning', 'Python']), or [] if acyclic.
+        """
+        if not prerequisites:
+            return False, []
+
+        # 1. Parse and sanitize prerequisite edges
+        clean_edges: List[Tuple[str, str]] = []
+        nodes: Set[str] = set()
+
+        for item in prerequisites:
+            p: Optional[str] = None
+            a: Optional[str] = None
+
+            if isinstance(item, (list, tuple)) and len(item) >= 2:
+                if item[0] is not None and item[1] is not None:
+                    p = str(item[0]).strip()
+                    a = str(item[1]).strip()
+            elif isinstance(item, dict):
+                val_p = item.get("prerequisite") or item.get("source") or item.get("p")
+                val_a = item.get("advanced") or item.get("target") or item.get("a")
+                if val_p is not None and val_a is not None:
+                    p = str(val_p).strip()
+                    a = str(val_a).strip()
+
+            if p and a:
+                if p.lower() == a.lower():
+                    # Direct self-loop detected
+                    return True, [p, a]
+                clean_edges.append((p, a))
+                nodes.add(p)
+                nodes.add(a)
+
+        if not clean_edges:
+            return False, []
+
+        # 2. Build adjacency list
+        adj: Dict[str, List[str]] = defaultdict(list)
+        for p, a in clean_edges:
+            adj[p].append(a)
+
+        # 3. 3-Color DFS Cycle Detection (0=White/Unvisited, 1=Gray/Visiting, 2=Black/Visited)
+        state: Dict[str, int] = {node: 0 for node in nodes}
+        current_path: List[str] = []
+        cycle_detected_path: List[str] = []
+
+        def dfs(u: str) -> bool:
+            nonlocal cycle_detected_path
+            state[u] = 1
+            current_path.append(u)
+
+            for v in adj.get(u, []):
+                if state.get(v, 0) == 1:
+                    # Back-edge found -> cycle detected!
+                    try:
+                        v_idx = current_path.index(v)
+                        cycle_detected_path = current_path[v_idx:] + [v]
+                    except ValueError:
+                        cycle_detected_path = [u, v, u]
+                    return True
+                elif state.get(v, 0) == 0:
+                    if dfs(v):
+                        return True
+
+            state[u] = 2
+            current_path.pop()
+            return False
+
+        # Sort for deterministic diagnostic outputs
+        for node in sorted(nodes):
+            if state[node] == 0:
+                if dfs(node):
+                    return True, cycle_detected_path
+
+        return False, []
+
+    @staticmethod
     def analyze_skill_gap_and_roadmap(
         required_skills: List[Dict[str, Any]],
         user_skills: List[str],
@@ -32,7 +121,9 @@ class RoadmapService:
                 "learning_order": [],
                 "has_cycle": False,
                 "cycle_warning": None,
+                "cycle_path": [],
                 "roadmap_stages": [],
+                "skills_hours": 0,
                 "total_hours": 0,
                 "estimated_weeks": 0.0
             }
@@ -100,14 +191,23 @@ class RoadmapService:
                     queue.append(neighbor)
 
         # 5. Cycle Detection
-        has_cycle = len(ordered_names) < len(missing_set)
+        has_kahn_cycle = len(ordered_names) < len(missing_set)
+        has_global_cycle, cycle_path = RoadmapService.detect_cycles(prerequisites)
+        has_cycle = has_kahn_cycle or has_global_cycle
+
         cycle_warning = None
         if has_cycle:
-            cycle_warning = "Prerequisite cycle detected in graph. Safely appending remaining skills."
-            # Append remaining skills that were part of a cycle safely without infinite looping
+            if cycle_path:
+                cycle_str = " -> ".join(cycle_path)
+                cycle_warning = f"Prerequisite cycle detected in graph ({cycle_str}). Safely ordering remaining skills."
+            else:
+                cycle_warning = "Prerequisite cycle detected in graph. Safely appending remaining skills."
+
+            # Append remaining unvisited skills safely so no competencies are lost
             for name in missing_set:
                 if name not in visited:
                     ordered_names.append(name)
+                    visited.add(name)
 
         ordered_missing_skills = [missing_lookup[name] for name in ordered_names]
 
@@ -171,6 +271,7 @@ class RoadmapService:
             "learning_order": ordered_missing_skills,
             "has_cycle": has_cycle,
             "cycle_warning": cycle_warning,
+            "cycle_path": cycle_path if has_cycle else [],
             "roadmap_stages": roadmap_stages,
             "skills_hours": skills_hours,
             "total_hours": skills_hours,

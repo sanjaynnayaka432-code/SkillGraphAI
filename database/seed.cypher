@@ -282,15 +282,15 @@ MERGE (s6:Skill {id: 'apis'})
 MERGE (s7:Skill {id: 'git'})
 MERGE (s8:Skill {id: 'cloud_computing'})
 MERGE (s9:Skill {id: 'mlops'})
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Core'}]->(s1)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Core'}]->(s2)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Core'}]->(s3)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Specialized'}]->(s4)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Foundational'}]->(s5)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Foundational'}]->(s6)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Foundational'}]->(s7)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Intermediate'}]->(s8)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Specialized'}]->(s9);
+MERGE (c)-[r1:REQUIRES_SKILL]->(s1) SET r1.importance = 'Core'
+MERGE (c)-[r2:REQUIRES_SKILL]->(s2) SET r2.importance = 'Core'
+MERGE (c)-[r3:REQUIRES_SKILL]->(s3) SET r3.importance = 'Core'
+MERGE (c)-[r4:REQUIRES_SKILL]->(s4) SET r4.importance = 'Specialized'
+MERGE (c)-[r5:REQUIRES_SKILL]->(s5) SET r5.importance = 'Foundational'
+MERGE (c)-[r6:REQUIRES_SKILL]->(s6) SET r6.importance = 'Foundational'
+MERGE (c)-[r7:REQUIRES_SKILL]->(s7) SET r7.importance = 'Foundational'
+MERGE (c)-[r8:REQUIRES_SKILL]->(s8) SET r8.importance = 'Intermediate'
+MERGE (c)-[r9:REQUIRES_SKILL]->(s9) SET r9.importance = 'Specialized';
 
 // Data Scientist
 MERGE (c:Career {id: 'data_scientist'})
@@ -302,14 +302,14 @@ MERGE (s5:Skill {id: 'machine_learning'})
 MERGE (s6:Skill {id: 'data_visualization'})
 MERGE (s7:Skill {id: 'deep_learning'})
 MERGE (s8:Skill {id: 'git'})
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Core'}]->(s1)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Core'}]->(s2)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Core'}]->(s3)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Core'}]->(s4)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Core'}]->(s5)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Intermediate'}]->(s6)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Specialized'}]->(s7)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Foundational'}]->(s8);
+MERGE (c)-[r1:REQUIRES_SKILL]->(s1) SET r1.importance = 'Core'
+MERGE (c)-[r2:REQUIRES_SKILL]->(s2) SET r2.importance = 'Core'
+MERGE (c)-[r3:REQUIRES_SKILL]->(s3) SET r3.importance = 'Core'
+MERGE (c)-[r4:REQUIRES_SKILL]->(s4) SET r4.importance = 'Core'
+MERGE (c)-[r5:REQUIRES_SKILL]->(s5) SET r5.importance = 'Core'
+MERGE (c)-[r6:REQUIRES_SKILL]->(s6) SET r6.importance = 'Intermediate'
+MERGE (c)-[r7:REQUIRES_SKILL]->(s7) SET r7.importance = 'Specialized'
+MERGE (c)-[r8:REQUIRES_SKILL]->(s8) SET r8.importance = 'Foundational';
 
 // Software Developer
 MERGE (c:Career {id: 'software_developer'})
@@ -322,15 +322,15 @@ MERGE (s6:Skill {id: 'web_development'})
 MERGE (s7:Skill {id: 'sql'})
 MERGE (s8:Skill {id: 'linux'})
 MERGE (s9:Skill {id: 'cloud_computing'})
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Core'}]->(s1)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Core'}]->(s2)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Core'}]->(s3)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Core'}]->(s4)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Core'}]->(s5)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Core'}]->(s6)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Intermediate'}]->(s7)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Intermediate'}]->(s8)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Specialized'}]->(s9);
+MERGE (c)-[r1:REQUIRES_SKILL]->(s1) SET r1.importance = 'Core'
+MERGE (c)-[r2:REQUIRES_SKILL]->(s2) SET r2.importance = 'Core'
+MERGE (c)-[r3:REQUIRES_SKILL]->(s3) SET r3.importance = 'Core'
+MERGE (c)-[r4:REQUIRES_SKILL]->(s4) SET r4.importance = 'Core'
+MERGE (c)-[r5:REQUIRES_SKILL]->(s5) SET r5.importance = 'Core'
+MERGE (c)-[r6:REQUIRES_SKILL]->(s6) SET r6.importance = 'Core'
+MERGE (c)-[r7:REQUIRES_SKILL]->(s7) SET r7.importance = 'Intermediate'
+MERGE (c)-[r8:REQUIRES_SKILL]->(s8) SET r8.importance = 'Intermediate'
+MERGE (c)-[r9:REQUIRES_SKILL]->(s9) SET r9.importance = 'Specialized';
 
 // Cybersecurity Analyst
 MERGE (c:Career {id: 'cybersecurity_analyst'})
@@ -341,13 +341,13 @@ MERGE (s4:Skill {id: 'python'})
 MERGE (s5:Skill {id: 'cloud_computing'})
 MERGE (s6:Skill {id: 'git'})
 MERGE (s7:Skill {id: 'sql'})
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Core'}]->(s1)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Core'}]->(s2)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Core'}]->(s3)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Core'}]->(s4)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Specialized'}]->(s5)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Foundational'}]->(s6)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Foundational'}]->(s7);
+MERGE (c)-[r1:REQUIRES_SKILL]->(s1) SET r1.importance = 'Core'
+MERGE (c)-[r2:REQUIRES_SKILL]->(s2) SET r2.importance = 'Core'
+MERGE (c)-[r3:REQUIRES_SKILL]->(s3) SET r3.importance = 'Core'
+MERGE (c)-[r4:REQUIRES_SKILL]->(s4) SET r4.importance = 'Core'
+MERGE (c)-[r5:REQUIRES_SKILL]->(s5) SET r5.importance = 'Specialized'
+MERGE (c)-[r6:REQUIRES_SKILL]->(s6) SET r6.importance = 'Foundational'
+MERGE (c)-[r7:REQUIRES_SKILL]->(s7) SET r7.importance = 'Foundational';
 
 // Data Analyst
 MERGE (c:Career {id: 'data_analyst'})
@@ -357,12 +357,12 @@ MERGE (s3:Skill {id: 'data_visualization'})
 MERGE (s4:Skill {id: 'statistics'})
 MERGE (s5:Skill {id: 'python'})
 MERGE (s6:Skill {id: 'git'})
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Core'}]->(s1)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Core'}]->(s2)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Core'}]->(s3)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Core'}]->(s4)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Intermediate'}]->(s5)
-MERGE (c)-[:REQUIRES_SKILL {importance: 'Foundational'}]->(s6);
+MERGE (c)-[r1:REQUIRES_SKILL]->(s1) SET r1.importance = 'Core'
+MERGE (c)-[r2:REQUIRES_SKILL]->(s2) SET r2.importance = 'Core'
+MERGE (c)-[r3:REQUIRES_SKILL]->(s3) SET r3.importance = 'Core'
+MERGE (c)-[r4:REQUIRES_SKILL]->(s4) SET r4.importance = 'Core'
+MERGE (c)-[r5:REQUIRES_SKILL]->(s5) SET r5.importance = 'Intermediate'
+MERGE (c)-[r6:REQUIRES_SKILL]->(s6) SET r6.importance = 'Foundational';
 
 // ------------------------------------------------------------------------------
 // 5. PROJECTS & (Project)-[:DEVELOPS_SKILL]->(Skill)
@@ -592,6 +592,13 @@ SET r16.name = 'Full Stack LLM BootCamp & MLOps',
     r16.platform = 'Full Stack Deep Learning',
     r16.duration_hours = 25;
 
+MERGE (r17:Resource {id: 'res_da_kaggle'})
+SET r17.name = 'Exploratory Data Analysis Mastery',
+    r17.url = 'https://www.kaggle.com/learn/data-cleaning',
+    r17.type = 'Course',
+    r17.platform = 'Kaggle Learn',
+    r17.duration_hours = 15;
+
 // Link Skills to Resources
 MERGE (s:Skill {id: 'python'}) MERGE (r:Resource {id: 'res_python_bootcamp'}) MERGE (s)-[:TAUGHT_BY]->(r);
 MERGE (s:Skill {id: 'sql'}) MERGE (r:Resource {id: 'res_sql_mode'}) MERGE (s)-[:TAUGHT_BY]->(r);
@@ -609,5 +616,5 @@ MERGE (s:Skill {id: 'networking'}) MERGE (r:Resource {id: 'res_cs50_net'}) MERGE
 MERGE (s:Skill {id: 'security_fundamentals'}) MERGE (r:Resource {id: 'res_tryhackme'}) MERGE (s)-[:TAUGHT_BY]->(r);
 MERGE (s:Skill {id: 'cloud_computing'}) MERGE (r:Resource {id: 'res_cloud_aws'}) MERGE (s)-[:TAUGHT_BY]->(r);
 MERGE (s:Skill {id: 'data_visualization'}) MERGE (r:Resource {id: 'res_plotly_guide'}) MERGE (s)-[:TAUGHT_BY]->(r);
-MERGE (s:Skill {id: 'data_analysis'}) MERGE (r:Resource {id: 'res_sql_mode'}) MERGE (s)-[:TAUGHT_BY]->(r);
+MERGE (s:Skill {id: 'data_analysis'}) MERGE (r:Resource {id: 'res_da_kaggle'}) MERGE (s)-[:TAUGHT_BY]->(r);
 MERGE (s:Skill {id: 'mlops'}) MERGE (r:Resource {id: 'res_fullstack_deeplearning'}) MERGE (s)-[:TAUGHT_BY]->(r);

@@ -31,8 +31,16 @@ def render_learning_roadmap_page(service: Any):
     user_skills = st.session_state.get("selected_skills", ["Python", "Git"])
     weekly_hours = st.session_state.get("weekly_hours", 15)
 
-    # Initialize completed and in-progress skill sets in session state
-    if "completed_skills" not in st.session_state:
+    # Display clear status if live Neo4j database is disconnected
+    if not getattr(service, "is_live_mode", False):
+        st.info("ℹ️ **Neo4j Offline (Demo Mode Active)**: Rendering learning roadmap from verified snapshot dataset. Connect live Neo4j Aura cluster in Settings.")
+
+    # Synchronize completed skills state when target career changes
+    if st.session_state.get("_roadmap_active_career") != c_target:
+        st.session_state._roadmap_active_career = c_target
+        st.session_state.completed_skills = list(user_skills)
+        st.session_state.in_progress_skills = []
+    elif "completed_skills" not in st.session_state:
         st.session_state.completed_skills = list(user_skills)
     if "in_progress_skills" not in st.session_state:
         st.session_state.in_progress_skills = []
@@ -47,13 +55,32 @@ def render_learning_roadmap_page(service: Any):
     # Cache updated analysis
     st.session_state.analysis_results = analysis
 
-    # Metrics Summary Row
     total_req = analysis.get("total_required", 0)
     matched_cnt = analysis.get("matched_count", 0)
     missing_cnt = analysis.get("missing_count", 0)
     in_prog_cnt = len(st.session_state.in_progress_skills)
     cov_pct = analysis.get("coverage_percentage", 0.0)
 
+    # Empty State Guard: If selected career has no required skills mapped
+    if total_req == 0:
+        st.warning(f"⚠️ **No Roadmap Data Available**: No required competencies found for career pathway '{c_target}'.")
+        st.markdown(f"""
+        <div class="sg-card" style="text-align: center; padding: 36px 20px;">
+            <div style="font-size: 2.2rem; margin-bottom: 10px;">🗺️</div>
+            <div style="font-size: 1.15rem; font-weight: 700; color: #111827; margin-bottom: 6px;">
+                No Skill Requirements Mapped for "{c_target}"
+            </div>
+            <div style="font-size: 0.9rem; color: #6B7280; max-width: 500px; margin: 0 auto 16px auto; line-height: 1.5;">
+                This career pathway does not have required competencies or prerequisite relationships in the graph database.
+            </div>
+            <div style="font-size: 0.8rem; color: #9CA3AF;">
+                Tip: Run <code>database/seed.cypher</code> in your Neo4j Browser to seed career requirements and prerequisite chains.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        return
+
+    # Metrics Summary Row
     m1, m2, m3, m4 = st.columns(4)
     with m1:
         st.markdown(f"""
@@ -90,12 +117,13 @@ def render_learning_roadmap_page(service: Any):
 
     st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
 
-    # Cycle Detection Check
+    # Cycle Detection Check with diagnostic path details
     prereqs = service.get_prerequisites()
     from services.roadmap_service import RoadmapService
     has_cycle, cycle_path = RoadmapService.detect_cycles(prereqs)
     if has_cycle:
-        st.warning(f"⚠️ Dependency cycle detected in graph: {' -> '.join(cycle_path)}. Automatic cycle breaking applied.")
+        cycle_str = " -> ".join(cycle_path) if cycle_path else "detected"
+        st.warning(f"⚠️ **Prerequisite Cycle Detected**: Chain `{cycle_str}` forms a cycle. Non-blocking topological fallback applied so roadmap remains accessible.")
 
     # Render 4 Roadmap Stages
     stages = analysis.get("roadmap_stages", [])

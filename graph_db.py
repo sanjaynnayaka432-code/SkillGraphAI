@@ -95,6 +95,12 @@ class SkillGraphService:
         prereqs = self.get_prerequisites()
         return self.projects.get_subgraph_data(career_name, user_skills, req_skills, prereqs)
 
+    def detect_cycles(self, prerequisites: Optional[List[Tuple[str, str]]] = None) -> Tuple[bool, List[str]]:
+        """Detect cycles in prerequisite graph with diagnostic path extraction."""
+        if prerequisites is None:
+            prerequisites = self.get_prerequisites()
+        return RoadmapService.detect_cycles(prerequisites)
+
 
 def analyze_career_gap(
     service: SkillGraphService,
