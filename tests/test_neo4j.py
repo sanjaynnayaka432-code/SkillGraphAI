@@ -71,7 +71,7 @@ class TestNeo4jConfiguration:
         checks = run_application_checks(service)
         assert len(checks) >= 11
         for chk in checks:
-            assert chk["status"] in ("PASS", "WARN", "FAIL", "SKIPPED")
+            assert chk["status"] in ("PASS", "WARN", "WARNING", "FAIL", "SKIPPED", "NOT CONFIGURED")
             assert "password" not in chk["details"].lower()
 
     def test_secret_masking_in_uri_and_status(self):

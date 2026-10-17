@@ -1,16 +1,22 @@
 """
 SkillGraph AI — Graph Visualization Module
-Vis.js interactive network graph matching the WhereUElevate modern SaaS palette:
-Primary Blue (#2878F0), Purple (#7955E8), Success Green (#16A875), Amber (#F4A62A), and clean white cards.
+Vis.js interactive network graph matching the Skill Graph minimalist aesthetic:
+Clean circular nodes with purple/violet rings (#8B5CF6), orange highlights (#EA580C),
+smooth curved edges, hover tooltips, and interactive inspection.
 """
 
 import json
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 
-def render_interactive_graph(subgraph_data: Dict[str, Any], height_px: int = 560) -> str:
+
+def render_interactive_graph(
+    subgraph_data: Dict[str, Any],
+    height_px: int = 600,
+    show_legend: bool = True
+) -> str:
     """
     Returns self-contained HTML for an interactive Vis.js graph
-    styled to match the premium light SaaS dashboard palette.
+    styled to match the Skill Graph product reference screenshot.
     """
     raw_nodes = subgraph_data.get("nodes", [])
     raw_links = subgraph_data.get("links", [])
@@ -23,63 +29,72 @@ def render_interactive_graph(subgraph_data: Dict[str, Any], height_px: int = 560
         status = n.get("status", "")
         extra = n.get("extra", "")
 
-        # Palette configuration
+        # Minimalist Skill Graph Palette
         if ntype == "Career":
+            # Central Domain Hub
             color = {
-                "background": "#7955E8",
-                "border": "#5B36D6",
-                "highlight": {"background": "#2878F0", "border": "#1E293B"}
+                "background": "#111827",
+                "border": "#030712",
+                "highlight": {"background": "#EA580C", "border": "#C2410C"}
             }
             shape = "box"
-            size = 32
-            font = {"color": "#FFFFFF", "size": 15, "face": "Plus Jakarta Sans, sans-serif", "bold": True}
+            size = 30
+            font = {
+                "color": "#FFFFFF",
+                "size": 15,
+                "face": "Plus Jakarta Sans, sans-serif",
+                "bold": True
+            }
         elif ntype == "Skill":
             if status == "Mastered":
+                # Mastered Skill (Emerald border, clean white fill)
                 color = {
-                    "background": "#16A875",
-                    "border": "#0D8259",
-                    "highlight": {"background": "#129466", "border": "#18223B"}
+                    "background": "#FFFFFF",
+                    "border": "#059669",
+                    "highlight": {"background": "#ECFDF5", "border": "#047857"}
                 }
-                font = {"color": "#FFFFFF", "size": 13, "face": "Plus Jakarta Sans, sans-serif", "bold": True}
+                font = {"color": "#065F46", "size": 13, "face": "Plus Jakarta Sans, sans-serif", "bold": True}
             elif status == "Blocked":
+                # Prerequisite-Blocked (Muted gray border)
                 color = {
-                    "background": "#F4A62A",
-                    "border": "#D98811",
-                    "highlight": {"background": "#FBBC05", "border": "#18223B"}
+                    "background": "#F9FAFB",
+                    "border": "#9CA3AF",
+                    "highlight": {"background": "#FFFFFF", "border": "#6B7280"}
                 }
-                font = {"color": "#FFFFFF", "size": 13, "face": "Plus Jakarta Sans, sans-serif", "bold": True}
+                font = {"color": "#6B7280", "size": 12, "face": "Plus Jakarta Sans, sans-serif"}
             else:
+                # Ready to Learn / Active Skill (Purple / Violet ring matching screenshot)
                 color = {
-                    "background": "#2878F0",
-                    "border": "#1B62CD",
-                    "highlight": {"background": "#4B8EF5", "border": "#18223B"}
+                    "background": "#FFFFFF",
+                    "border": "#8B5CF6",
+                    "highlight": {"background": "#F5F3FF", "border": "#7C3AED"}
                 }
-                font = {"color": "#FFFFFF", "size": 13, "face": "Plus Jakarta Sans, sans-serif"}
+                font = {"color": "#5B21B6", "size": 13, "face": "Plus Jakarta Sans, sans-serif", "bold": True}
             shape = "dot"
-            size = 20
+            size = 22
         elif ntype == "Project":
             color = {
-                "background": "#1E293B",
-                "border": "#0F172A",
-                "highlight": {"background": "#7955E8", "border": "#2878F0"}
+                "background": "#FFF7ED",
+                "border": "#EA580C",
+                "highlight": {"background": "#FFFFFF", "border": "#C2410C"}
             }
             shape = "hexagon"
-            size = 22
-            font = {"color": "#FFFFFF", "size": 12, "face": "Plus Jakarta Sans, sans-serif"}
+            size = 20
+            font = {"color": "#9A3412", "size": 12, "face": "Plus Jakarta Sans, sans-serif"}
         elif ntype == "Resource":
             color = {
-                "background": "#EDE9FF",
-                "border": "#D8D0FF",
-                "highlight": {"background": "#FFFFFF", "border": "#7955E8"}
+                "background": "#F3F4F6",
+                "border": "#D1D5DB",
+                "highlight": {"background": "#FFFFFF", "border": "#8B5CF6"}
             }
             shape = "diamond"
-            size = 18
-            font = {"color": "#18223B", "size": 11, "face": "Plus Jakarta Sans, sans-serif"}
+            size = 17
+            font = {"color": "#374151", "size": 11, "face": "Plus Jakarta Sans, sans-serif"}
         else:
-            color = {"background": "#94A3B8", "border": "#64748B"}
+            color = {"background": "#F9FAFB", "border": "#D1D5DB"}
             shape = "dot"
-            size = 15
-            font = {"color": "#FFFFFF", "size": 12}
+            size = 16
+            font = {"color": "#111827", "size": 12}
 
         title = f"<b>{label}</b><br>Type: {ntype}<br>Status: {status}<br>{extra}"
 
@@ -90,7 +105,8 @@ def render_interactive_graph(subgraph_data: Dict[str, Any], height_px: int = 560
             "size": size,
             "color": color,
             "font": font,
-            "title": title
+            "title": title,
+            "borderWidth": 2.5
         })
 
     vis_edges = []
@@ -99,23 +115,24 @@ def render_interactive_graph(subgraph_data: Dict[str, Any], height_px: int = 560
         label = l.get("label", "")
         
         if ltype == "requires":
-            edge_color = {"color": "#94A3B8", "highlight": "#2878F0", "opacity": 0.75}
+            edge_color = {"color": "#D1D5DB", "highlight": "#EA580C", "opacity": 0.8}
             dashes = True
-            width = 1.6
+            width = 1.5
         elif ltype == "prerequisite":
-            edge_color = {"color": "#7955E8", "highlight": "#5B36D6", "opacity": 0.95}
+            # Purple prerequisite dependency flow
+            edge_color = {"color": "#8B5CF6", "highlight": "#7C3AED", "opacity": 0.9}
             dashes = False
-            width = 2.4
+            width = 2.2
         elif ltype == "develops":
-            edge_color = {"color": "#2878F0", "highlight": "#1B62CD", "opacity": 0.8}
+            edge_color = {"color": "#F97316", "highlight": "#EA580C", "opacity": 0.85}
             dashes = False
             width = 1.8
         elif ltype == "taught_by":
-            edge_color = {"color": "#CBD5E1", "highlight": "#7955E8", "opacity": 0.7}
+            edge_color = {"color": "#E5E7EB", "highlight": "#8B5CF6", "opacity": 0.7}
             dashes = True
-            width = 1.4
+            width = 1.2
         else:
-            edge_color = {"color": "#CBD5E1", "opacity": 0.6}
+            edge_color = {"color": "#E5E7EB", "opacity": 0.6}
             dashes = False
             width = 1.0
 
@@ -123,7 +140,7 @@ def render_interactive_graph(subgraph_data: Dict[str, Any], height_px: int = 560
             "from": l["source"],
             "to": l["target"],
             "label": label,
-            "font": {"color": "#6B7280", "size": 9, "align": "middle", "strokeWidth": 0},
+            "font": {"color": "#9CA3AF", "size": 9, "align": "middle", "strokeWidth": 0},
             "arrows": "to",
             "color": edge_color,
             "dashes": dashes,
@@ -133,6 +150,18 @@ def render_interactive_graph(subgraph_data: Dict[str, Any], height_px: int = 560
 
     nodes_json = json.dumps(vis_nodes)
     edges_json = json.dumps(vis_edges)
+
+    legend_html = """
+    <div class="legend">
+        <div class="legend-item"><span class="badge-dot" style="background:#111827;"></span>Target Role</div>
+        <div class="legend-item"><span class="badge-dot" style="background:#FFFFFF; border:2px solid #059669;"></span>Mastered</div>
+        <div class="legend-item"><span class="badge-dot" style="background:#FFFFFF; border:2px solid #8B5CF6;"></span>Ready to Learn (Violet Ring)</div>
+        <div class="legend-item"><span class="badge-dot" style="background:#F9FAFB; border:2px solid #9CA3AF;"></span>Locked by Prereq</div>
+        <div class="legend-item"><span class="badge-dot" style="background:#FFF7ED; border:2px solid #EA580C;"></span>Capstone Project</div>
+        <div class="legend-item"><span class="badge-dot" style="background:#F3F4F6; border:2px solid #D1D5DB;"></span>Resource</div>
+        <div class="legend-item" style="color:#8B5CF6; font-weight:700;"><span>➔</span> Prerequisite Flow</div>
+    </div>
+    """ if show_legend else ""
 
     html_content = f"""
     <!DOCTYPE html>
@@ -153,50 +182,43 @@ def render_interactive_graph(subgraph_data: Dict[str, Any], height_px: int = 560
             }}
             #mynetwork {{
                 width: 100%;
-                height: {height_px - 48}px;
+                height: {height_px - (46 if show_legend else 0)}px;
                 background: #FFFFFF;
-                border: 1px solid rgba(226, 232, 240, 0.8);
-                border-radius: 20px;
-                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+                border: 1px solid #E5E7EB;
+                border-radius: 12px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
             }}
             .legend {{
                 display: flex;
                 flex-wrap: wrap;
                 align-items: center;
                 justify-content: center;
-                gap: 16px;
-                padding: 10px 16px;
+                gap: 14px;
+                padding: 8px 14px;
                 background: #FFFFFF;
-                border: 1px solid rgba(226, 232, 240, 0.8);
-                border-radius: 14px;
-                margin-bottom: 10px;
-                font-size: 12px;
-                color: #475467;
-                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+                border: 1px solid #E5E7EB;
+                border-radius: 8px;
+                margin-bottom: 8px;
+                font-size: 11px;
+                color: #4B5563;
             }}
             .legend-item {{
                 display: flex;
                 align-items: center;
-                gap: 6px;
+                gap: 5px;
                 font-weight: 600;
             }}
             .badge-dot {{
-                width: 11px;
-                height: 11px;
+                width: 10px;
+                height: 10px;
                 border-radius: 50%;
                 display: inline-block;
+                box-sizing: border-box;
             }}
         </style>
     </head>
     <body>
-        <div class="legend">
-            <div class="legend-item"><span class="badge-dot" style="background:#7955E8;"></span>Target Career</div>
-            <div class="legend-item"><span class="badge-dot" style="background:#16A875;"></span>Mastered Skill</div>
-            <div class="legend-item"><span class="badge-dot" style="background:#2878F0;"></span>Ready to Learn</div>
-            <div class="legend-item"><span class="badge-dot" style="background:#1E293B;"></span>Capstone Project</div>
-            <div class="legend-item"><span class="badge-dot" style="background:#EDE9FF; border:1px solid #D8D0FF;"></span>Resource</div>
-            <div class="legend-item" style="color:#7955E8;"><span>➔</span>Prerequisite Flow</div>
-        </div>
+        {legend_html}
         <div id="mynetwork"></div>
 
         <script type="text/javascript">
@@ -207,26 +229,25 @@ def render_interactive_graph(subgraph_data: Dict[str, Any], height_px: int = 560
             const data = {{ nodes: nodes, edges: edges }};
             const options = {{
                 nodes: {{
-                    borderWidth: 2,
-                    shadow: {{ enabled: true, color: 'rgba(0,0,0,0.04)', size: 8, x: 1, y: 2 }}
+                    shadow: {{ enabled: true, color: 'rgba(0,0,0,0.03)', size: 6, x: 1, y: 2 }}
                 }},
                 edges: {{
-                    selectionWidth: 3,
+                    selectionWidth: 2.5,
                     shadow: {{ enabled: false }}
                 }},
                 physics: {{
                     stabilization: {{ iterations: 120 }},
                     barnesHut: {{
-                        gravitationalConstant: -3500,
+                        gravitationalConstant: -3800,
                         centralGravity: 0.28,
-                        springLength: 110,
+                        springLength: 105,
                         springConstant: 0.045,
                         damping: 0.09
                     }}
                 }},
                 interaction: {{
                     hover: true,
-                    tooltipDelay: 100,
+                    tooltipDelay: 80,
                     zoomView: true,
                     dragView: true
                 }}
