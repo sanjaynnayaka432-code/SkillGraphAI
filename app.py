@@ -2,13 +2,16 @@
 SkillGraph AI — Personalized Career Navigator
 Neo4j × hackFront India Graph Builder Build Sprint
 
-Redesigned with the modern Flux Bento Dashboard aesthetic:
-- Matte dark charcoal sidebar (#16181d) with white active pill and neon lime badges
-- Light off-white / cool-gray canvas (#eef0f3)
-- Crisp white Bento grid cards with soft rounded corners (24px)
-- Signature overlapping geometric bubbles graphic (Lilac #b8b2ff, Charcoal #16181d, Lime #d4f938)
-- Signature dark bento card with striped milestone bars and neon lime highlights
-- Modern geometric typography (Plus Jakarta Sans)
+Redesigned with the WhereUElevate modern SaaS dashboard aesthetic:
+- Light, frosted-glass dashboard background (#F4F6FF)
+- Blue-to-purple gradient hero banner (#2878F0 -> #7955E8)
+- Elegant white sidebar with user profile, brand, and navigation
+- 4 crisp white KPI cards with soft pastel accent glows
+- Prerequisite-aware Skill Gap Analysis (Green, Blue, Amber badges)
+- Topological Learning Roadmap with step numbers & milestone resources
+- Capstone Project recommendations with "View Project" action
+- Interactive Vis.js Knowledge Graph container with legend
+- Multi-career exploration cards with instant readiness calculator
 """
 
 import streamlit as st
@@ -23,14 +26,14 @@ from graph_viz import render_interactive_graph
 # STREAMLIT PAGE CONFIGURATION
 # ==============================================================================
 st.set_page_config(
-    page_title="SkillGraph AI — Career Overview",
-    page_icon="⚡",
+    page_title="SkillGraph AI — Personalized Career Navigator",
+    page_icon="🧭",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # ==============================================================================
-# CUSTOM CSS: FLUX MODERN BENTO DESIGN SYSTEM
+# CUSTOM CSS: WHEREUELEVATE SAAS DASHBOARD THEME
 # ==============================================================================
 st.markdown("""
 <style>
@@ -38,602 +41,452 @@ st.markdown("""
 
     html, body, [class*="css"] {
         font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
-        color: #16181d;
+        color: #18223B;
     }
 
-    /* Outer application background: cool off-white */
+    /* Outer light lavender canvas */
     .stApp {
-        background-color: #eef0f3;
+        background: linear-gradient(180deg, #F4F6FF 0%, #EDF1FD 100%);
     }
 
-    /* Main block container padding */
+    /* Main container max width & spacing */
     .block-container {
-        padding-top: 1.5rem !important;
-        padding-bottom: 3rem !important;
-        max-width: 1400px;
+        padding-top: 1.2rem !important;
+        padding-bottom: 3.5rem !important;
+        max-width: 1440px;
     }
 
-    /* Left Sidebar styling: Dark charcoal matte */
+    /* Elegant White Sidebar */
     [data-testid="stSidebar"] {
-        background-color: #131418 !important;
-        border-right: 1px solid rgba(255, 255, 255, 0.04);
+        background-color: #FFFFFF !important;
+        border-right: 1px solid rgba(226, 232, 240, 0.8) !important;
+        box-shadow: 2px 0 16px rgba(40, 120, 240, 0.03);
     }
 
     [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
     [data-testid="stSidebar"] label {
-        color: #98a2b3 !important;
-        font-weight: 500;
+        color: #475467 !important;
+        font-weight: 600;
+        font-size: 0.85rem;
     }
 
-    /* Custom Header Bar */
-    .top-navbar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 24px;
-        padding: 4px 0;
-    }
-
-    .user-profile {
+    /* Sidebar Profile Card */
+    .sidebar-profile {
         display: flex;
         align-items: center;
         gap: 12px;
+        padding: 12px;
+        background: #F8FAFC;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        margin-bottom: 20px;
     }
-
-    .user-avatar {
+    .profile-avatar {
         width: 44px;
         height: 44px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #16181d 0%, #344054 100%);
-        border: 2px solid #ffffff;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        background: linear-gradient(135deg, #2878F0 0%, #7955E8 100%);
+        color: #FFFFFF;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 1.2rem;
+        font-weight: 800;
+        box-shadow: 0 4px 12px rgba(40, 120, 240, 0.25);
     }
-
-    .user-info-name {
+    .profile-name {
         font-weight: 800;
         font-size: 0.95rem;
-        color: #16181d;
-        display: flex;
-        align-items: center;
-        gap: 6px;
+        color: #18223B;
+        line-height: 1.2;
     }
-
-    .user-info-email {
-        font-size: 0.78rem;
-        color: #667085;
-    }
-
-    .top-actions {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .search-pill {
-        background: #ffffff;
-        border: 1px solid rgba(0,0,0,0.06);
-        border-radius: 30px;
-        padding: 8px 18px;
-        font-size: 0.85rem;
-        color: #667085;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        min-width: 240px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-    }
-
-    .date-pill {
-        font-size: 0.82rem;
+    .profile-sub {
+        font-size: 0.75rem;
+        color: #2878F0;
         font-weight: 600;
-        color: #667085;
     }
 
-    .dropdown-pill {
-        background: #ffffff;
-        border: 1px solid rgba(0,0,0,0.06);
-        border-radius: 30px;
-        padding: 8px 16px;
-        font-size: 0.85rem;
-        font-weight: 700;
-        color: #16181d;
+    /* Sidebar Brand Logo */
+    .sidebar-brand {
         display: flex;
         align-items: center;
-        gap: 6px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        gap: 10px;
+        margin-bottom: 18px;
+        padding-left: 4px;
     }
-
-    .notif-bell {
-        width: 38px;
-        height: 38px;
-        border-radius: 50%;
-        background: #ffffff;
-        border: 1px solid rgba(0,0,0,0.06);
+    .brand-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #2878F0 0%, #7955E8 100%);
         display: flex;
         align-items: center;
         justify-content: center;
-        position: relative;
-        font-size: 0.95rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        color: #FFFFFF;
+        font-size: 1rem;
+        font-weight: 800;
+    }
+    .brand-text {
+        font-weight: 800;
+        font-size: 1.15rem;
+        color: #18223B;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+    }
+    .brand-tagline {
+        font-size: 0.7rem;
+        color: #6B7280;
+        font-weight: 600;
     }
 
-    .notif-badge {
-        position: absolute;
-        top: 2px;
-        right: 2px;
-        background: #d4f938;
-        color: #16181d;
-        font-size: 0.65rem;
-        font-weight: 800;
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
+    /* Top Dashboard Header */
+    .top-header-row {
         display: flex;
+        justify-content: space-between;
         align-items: center;
-        justify-content: center;
-        border: 2px solid #ffffff;
+        margin-bottom: 18px;
     }
-
-    /* Hero Title Area */
-    .overview-header {
-        margin-bottom: 22px;
-    }
-    .overview-title {
-        font-size: 2.35rem;
+    .header-eyebrow {
+        font-size: 0.72rem;
         font-weight: 800;
-        color: #16181d;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #2878F0;
+        margin-bottom: 4px;
+    }
+    .header-title {
+        font-size: 2.1rem;
+        font-weight: 800;
+        color: #18223B;
         letter-spacing: -0.03em;
         line-height: 1.15;
     }
-    .overview-subtitle {
-        font-size: 0.95rem;
-        color: #667085;
+    .header-subtitle {
+        font-size: 0.92rem;
+        color: #6B7280;
         font-weight: 500;
         margin-top: 4px;
     }
-
-    /* Bento Cards */
-    .bento-card {
-        background: #ffffff;
-        border-radius: 26px;
-        padding: 24px;
-        border: 1px solid rgba(0, 0, 0, 0.04);
-        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.02);
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .bento-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.04);
-    }
-
-    .bento-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 14px;
-    }
-    .bento-title {
-        font-size: 0.95rem;
-        font-weight: 700;
-        color: #16181d;
+    .header-user-pill {
         display: flex;
         align-items: center;
         gap: 8px;
-    }
-    .bento-more {
-        color: #98a2b3;
-        font-size: 1.1rem;
-        cursor: pointer;
-    }
-
-    /* Large Big Stat with pill */
-    .hero-stat-row {
-        display: flex;
-        align-items: baseline;
-        gap: 10px;
-        margin-bottom: 16px;
-    }
-    .hero-stat-number {
-        font-size: 2.6rem;
-        font-weight: 800;
-        color: #16181d;
-        letter-spacing: -0.03em;
-        line-height: 1;
-    }
-    .hero-stat-unit {
-        font-size: 0.82rem;
-        color: #667085;
-        font-weight: 600;
-    }
-    .pill-badge-lime {
-        background: #d4f938;
-        color: #16181d;
-        font-size: 0.72rem;
-        font-weight: 800;
-        padding: 2px 8px;
-        border-radius: 20px;
-    }
-    .pill-badge-lilac {
-        background: #b8b2ff;
-        color: #16181d;
-        font-size: 0.72rem;
-        font-weight: 800;
-        padding: 2px 8px;
-        border-radius: 20px;
-    }
-
-    /* Signature Overlapping Bubbles */
-    .bubbles-container {
-        position: relative;
-        height: 175px;
-        margin: 10px 0 24px 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .bubble-lilac {
-        position: absolute;
-        left: 20px;
-        width: 145px;
-        height: 145px;
-        border-radius: 50%;
-        background-color: #b8b2ff;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        z-index: 1;
-        box-shadow: 0 8px 24px rgba(184, 178, 255, 0.4);
-    }
-    .bubble-charcoal {
-        position: absolute;
-        right: 35px;
-        width: 125px;
-        height: 125px;
-        border-radius: 50%;
-        background-color: #16181d;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        z-index: 2;
-        box-shadow: 0 8px 24px rgba(22, 24, 29, 0.3);
-    }
-    .bubble-lime {
-        position: absolute;
-        bottom: 0px;
-        right: 90px;
-        width: 90px;
-        height: 90px;
-        border-radius: 50%;
-        background-color: #d4f938;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        z-index: 3;
-        box-shadow: 0 6px 18px rgba(212, 249, 56, 0.4);
-    }
-    .bubble-val {
-        font-size: 1.45rem;
-        font-weight: 800;
-        line-height: 1;
-    }
-    .bubble-lbl {
-        font-size: 0.7rem;
-        font-weight: 600;
-        margin-top: 3px;
-    }
-
-    /* Horizontal Progress Bars in Energy Card */
-    .prog-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 10px;
-    }
-    .prog-label-left {
-        font-size: 1.15rem;
-        font-weight: 800;
-        color: #16181d;
-        min-width: 45px;
-    }
-    .prog-label-left span {
-        font-size: 0.72rem;
-        font-weight: 600;
-        color: #667085;
-    }
-    .prog-track {
-        flex: 1;
-        height: 8px;
-        background: #f0f2f5;
-        border-radius: 10px;
-        overflow: hidden;
-    }
-    .prog-fill-lilac {
-        height: 100%;
-        background: #b8b2ff;
-        border-radius: 10px;
-    }
-    .prog-fill-dark {
-        height: 100%;
-        background: #16181d;
-        border-radius: 10px;
-    }
-    .prog-fill-lime {
-        height: 100%;
-        background: #d4f938;
-        border-radius: 10px;
-    }
-    .prog-label-right {
-        font-size: 0.78rem;
-        font-weight: 600;
-        color: #667085;
-        min-width: 75px;
-        text-align: right;
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        gap: 4px;
-    }
-    .dot-indicator {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        display: inline-block;
-    }
-
-    /* Dark Bento Card: Sleep Analysis style */
-    .dark-bento-card {
-        background-color: #16181d;
-        border-radius: 26px;
-        padding: 24px;
-        color: #ffffff;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-    }
-    .dark-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 16px;
-    }
-    .dark-title {
-        font-size: 0.95rem;
+        background: #FFFFFF;
+        border: 1px solid rgba(226, 232, 240, 0.9);
+        border-radius: 30px;
+        padding: 6px 14px;
+        font-size: 0.85rem;
         font-weight: 700;
-        color: #ffffff;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    .dark-pill {
-        background: #242731;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 20px;
-        padding: 4px 12px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        color: #d0d5dd;
+        color: #18223B;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
     }
 
-    .dark-stats-row {
-        display: flex;
-        gap: 32px;
+    /* Hero Banner Card */
+    .hero-banner {
+        background: linear-gradient(135deg, #2563EB 0%, #4F46E5 50%, #7C3AED 100%);
+        border-radius: 24px;
+        padding: 30px 34px;
+        color: #FFFFFF;
+        box-shadow: 0 12px 36px rgba(79, 70, 229, 0.28);
         margin-bottom: 24px;
-    }
-    .dark-stat-item {
-        display: flex;
-        align-items: flex-start;
-        gap: 8px;
-    }
-    .dark-marker-lime {
-        width: 5px;
-        height: 28px;
-        border-radius: 4px;
-        background: #d4f938;
-        margin-top: 3px;
-    }
-    .dark-marker-lilac {
-        width: 5px;
-        height: 28px;
-        border-radius: 4px;
-        background: #b8b2ff;
-        margin-top: 3px;
-    }
-    .dark-stat-val {
-        font-size: 1.7rem;
-        font-weight: 800;
-        color: #ffffff;
-        line-height: 1.1;
-    }
-    .dark-stat-lbl {
-        font-size: 0.75rem;
-        color: #98a2b3;
-        font-weight: 500;
-    }
-
-    /* Vertical Bar Chart (Signature striped bars) */
-    .bars-chart-container {
-        display: flex;
-        align-items: flex-end;
-        justify-content: space-between;
-        height: 110px;
-        padding-top: 10px;
-        gap: 8px;
-    }
-    .bar-col {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 8px;
-        flex: 1;
-    }
-    .bar-track {
-        width: 22px;
-        border-radius: 14px;
-        position: relative;
-    }
-    .bar-striped {
-        background: repeating-linear-gradient(
-            45deg,
-            #222631,
-            #222631 3px,
-            #191c24 3px,
-            #191c24 6px
-        );
-        border: 1px solid rgba(255, 255, 255, 0.05);
-    }
-    .bar-active-lime {
-        background: #d4f938;
-        box-shadow: 0 0 16px rgba(212, 249, 56, 0.35);
-    }
-    .bar-active-lilac {
-        background: #b8b2ff;
-        box-shadow: 0 0 16px rgba(184, 178, 255, 0.35);
-    }
-    .bar-month {
-        font-size: 0.72rem;
-        color: #667085;
-        font-weight: 600;
-    }
-
-    /* Upgrade to Pro Card in Sidebar */
-    .pro-card {
-        background: #d4f938;
-        border-radius: 22px;
-        padding: 20px;
-        color: #16181d;
-        margin-top: 24px;
         position: relative;
         overflow: hidden;
     }
-    .pro-card-title {
-        font-size: 1.15rem;
-        font-weight: 800;
-        color: #16181d;
+    .hero-banner::after {
+        content: "";
+        position: absolute;
+        top: -40px;
+        right: -40px;
+        width: 220px;
+        height: 220px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 70%);
+        pointer-events: none;
+    }
+    .hero-greeting {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #EDE9FF;
         margin-bottom: 4px;
     }
-    .pro-card-sub {
-        font-size: 0.78rem;
-        color: #2c3300;
-        line-height: 1.4;
-        margin-bottom: 14px;
+    .hero-heading {
+        font-size: 1.85rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+        margin-bottom: 8px;
     }
-    .pro-card-btn {
-        background: #16181d;
-        color: #ffffff;
-        border-radius: 30px;
-        padding: 9px 18px;
-        font-size: 0.8rem;
-        font-weight: 700;
-        text-align: center;
-        display: block;
-        text-decoration: none;
+    .hero-desc {
+        font-size: 0.92rem;
+        color: #E0E7FF;
+        line-height: 1.5;
+        max-width: 750px;
+        margin-bottom: 20px;
     }
 
-    /* Navigation Pills in Sidebar */
-    .nav-item-active {
-        background: #ffffff;
-        color: #16181d !important;
-        border-radius: 30px;
-        padding: 10px 18px;
-        font-weight: 700;
-        font-size: 0.88rem;
+    .hero-progress-box {
+        background: rgba(255, 255, 255, 0.14);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 16px;
+        padding: 16px 20px;
+        margin-bottom: 20px;
+    }
+    .hero-prog-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        font-weight: 700;
+        font-size: 0.88rem;
         margin-bottom: 8px;
     }
-    .nav-item-inactive {
-        color: #98a2b3 !important;
-        padding: 9px 18px;
-        font-weight: 600;
-        font-size: 0.86rem;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 6px;
+    .hero-prog-track {
+        height: 8px;
+        background: rgba(255, 255, 255, 0.25);
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 8px;
+    }
+    .hero-prog-fill {
+        height: 100%;
+        background: #FFFFFF;
+        border-radius: 10px;
+        transition: width 0.4s ease;
     }
 
-    /* Sub-section white cards */
-    .section-card {
-        background: #ffffff;
-        border-radius: 22px;
-        padding: 24px;
-        border: 1px solid rgba(0, 0, 0, 0.04);
-        box-shadow: 0 4px 18px rgba(0,0,0,0.02);
-        margin-bottom: 20px;
+    .hero-pills-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
     }
-    .section-heading {
-        font-size: 1.25rem;
+    .hero-pill {
+        background: rgba(255, 255, 255, 0.16);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        color: #FFFFFF;
+        font-size: 0.8rem;
+        font-weight: 700;
+        padding: 6px 14px;
+        border-radius: 20px;
+    }
+
+    /* KPI Cards (4 in a row) */
+    .kpi-card-white {
+        background: #FFFFFF;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 20px;
+        padding: 22px 24px;
+        box-shadow: 0 4px 18px rgba(40, 120, 240, 0.03);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .kpi-card-white:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 26px rgba(40, 120, 240, 0.08);
+    }
+    .kpi-glow-circle {
+        position: absolute;
+        top: -15px;
+        right: -15px;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        pointer-events: none;
+    }
+    .kpi-num {
+        font-size: 2.3rem;
         font-weight: 800;
-        color: #16181d;
-        margin-bottom: 16px;
+        color: #18223B;
+        line-height: 1;
+        letter-spacing: -0.03em;
+        margin-bottom: 6px;
+    }
+    .kpi-lbl {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #6B7280;
+    }
+
+    /* Quick Action Cards (Row below KPI cards) */
+    .action-btn-card {
+        background: #FFFFFF;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 18px;
+        padding: 16px;
+        text-align: center;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+        cursor: pointer;
+        transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+    .action-btn-card:hover {
+        transform: translateY(-2px);
+        border-color: #2878F0;
+    }
+    .action-icon {
+        font-size: 1.4rem;
+        margin-bottom: 6px;
+    }
+    .action-text {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #18223B;
+    }
+
+    /* White Section Container Cards */
+    .saas-card {
+        background: #FFFFFF;
+        border: 1px solid rgba(226, 232, 240, 0.85);
+        border-radius: 22px;
+        padding: 28px;
+        box-shadow: 0 4px 20px rgba(40, 120, 240, 0.03);
+        margin-bottom: 24px;
+    }
+    .saas-card-title {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: #18223B;
+        letter-spacing: -0.02em;
+        margin-bottom: 6px;
         display: flex;
         align-items: center;
         gap: 8px;
+    }
+    .saas-card-subtitle {
+        font-size: 0.86rem;
+        color: #6B7280;
+        margin-bottom: 20px;
     }
 
     /* Badges */
-    .badge-flux-mastered {
-        background: #eefdc6;
-        color: #3b5700;
-        border: 1px solid #d4f938;
+    .badge-mastered {
+        background: #E8F8F2;
+        color: #16A875;
+        border: 1px solid rgba(22, 168, 117, 0.3);
         font-weight: 700;
-        padding: 4px 10px;
+        padding: 5px 12px;
         border-radius: 8px;
-        font-size: 0.78rem;
+        font-size: 0.8rem;
         display: inline-block;
         margin: 3px 4px 3px 0;
     }
-    .badge-flux-missing {
-        background: #f1f0ff;
-        color: #4a43b2;
-        border: 1px solid #b8b2ff;
+    .badge-ready {
+        background: #EDF4FF;
+        color: #2878F0;
+        border: 1px solid rgba(40, 120, 240, 0.3);
         font-weight: 700;
-        padding: 4px 10px;
+        padding: 5px 12px;
         border-radius: 8px;
-        font-size: 0.78rem;
+        font-size: 0.8rem;
         display: inline-block;
         margin: 3px 4px 3px 0;
     }
-    .badge-flux-blocked {
-        background: #fef3f2;
-        color: #b42318;
-        border: 1px solid #fecdca;
+    .badge-blocked {
+        background: #FFF7EC;
+        color: #F4A62A;
+        border: 1px solid rgba(244, 166, 42, 0.35);
         font-weight: 700;
-        padding: 4px 10px;
+        padding: 5px 12px;
         border-radius: 8px;
-        font-size: 0.78rem;
+        font-size: 0.8rem;
         display: inline-block;
         margin: 3px 4px 3px 0;
     }
 
-    /* Dot Matrix Chart in Wellness Card */
-    .dot-matrix {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 6px;
-        margin-top: 10px;
+    /* Roadmap Timeline Step */
+    .timeline-step {
+        display: flex;
+        gap: 16px;
+        padding: 16px 20px;
+        background: #F8FAFC;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        margin-bottom: 12px;
+        align-items: flex-start;
+        transition: transform 0.15s ease;
     }
-    .matrix-dot {
-        width: 10px;
-        height: 10px;
+    .timeline-step:hover {
+        transform: translateX(3px);
+        background: #FFFFFF;
+    }
+    .step-number-circle {
+        min-width: 34px;
+        height: 34px;
         border-radius: 50%;
-        background-color: #b8b2ff;
-        margin: 0 auto;
+        background: #2878F0;
+        color: #FFFFFF;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 0.88rem;
+        box-shadow: 0 4px 10px rgba(40, 120, 240, 0.25);
+    }
+    .step-number-done {
+        background: #16A875 !important;
+        box-shadow: 0 4px 10px rgba(22, 168, 117, 0.25) !important;
+    }
+    .step-number-blocked {
+        background: #F4A62A !important;
+        box-shadow: 0 4px 10px rgba(244, 166, 42, 0.25) !important;
+    }
+
+    /* Career Card */
+    .career-grid-card {
+        background: #FFFFFF;
+        border: 1px solid rgba(226, 232, 240, 0.9);
+        border-radius: 18px;
+        padding: 20px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .career-grid-card:hover {
+        transform: translateY(-2px);
+        border-color: #7955E8;
+    }
+
+    /* Segmented Navigation Tab Pill */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        background-color: #FFFFFF;
+        padding: 6px;
+        border-radius: 14px;
+        border: 1px solid rgba(226, 232, 240, 0.9);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    }
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 10px;
+        padding: 8px 18px;
+        font-weight: 700;
+        color: #6B7280;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #EDE9FF !important;
+        color: #7955E8 !important;
+    }
+
+    /* Primary Gradient Button */
+    div.stButton > button:first-child {
+        background: linear-gradient(135deg, #2878F0 0%, #7955E8 100%) !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        border-radius: 12px !important;
+        font-weight: 700 !important;
+        padding: 10px 20px !important;
+        box-shadow: 0 4px 14px rgba(40, 120, 240, 0.3) !important;
+        transition: transform 0.15s ease !important;
+    }
+    div.stButton > button:first-child:hover {
+        transform: translateY(-1px) !important;
+        box-shadow: 0 6px 18px rgba(40, 120, 240, 0.4) !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -664,6 +517,8 @@ if "custom_neo4j_user" not in st.session_state:
     st.session_state.custom_neo4j_user = ""
 if "custom_neo4j_pwd" not in st.session_state:
     st.session_state.custom_neo4j_pwd = ""
+if "selected_career_target" not in st.session_state:
+    st.session_state.selected_career_target = "AI Engineer"
 
 service = init_neo4j_service(
     secrets_data,
@@ -679,88 +534,108 @@ all_skill_names = sorted([s["name"] for s in all_skills_data])
 
 
 # ==============================================================================
-# SIDEBAR: FLUX DARK MATTE THEME
+# ELEGANT LEFT SIDEBAR (WhereUElevate Style)
 # ==============================================================================
 with st.sidebar:
-    # Flux Brand Logo
+    # 1. Profile Area
     st.markdown("""
-    <div style="display:flex; align-items:center; gap:8px; margin-bottom:26px;">
-        <span style="color:#d4f938; font-size:1.6rem; line-height:1;">✦</span>
-        <span style="font-size:1.55rem; font-weight:800; color:#ffffff; letter-spacing:-0.03em;">skillgraph</span>
+    <div class="sidebar-profile">
+        <div class="profile-avatar">👨‍💻</div>
+        <div>
+            <div class="profile-name">Sanjay N</div>
+            <div class="profile-sub">Career Navigator</div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # Nav Pills
+    # 2. Brand & Tagline
     st.markdown("""
-    <div class="nav-item-active">
-        <span style="display:flex; align-items:center; gap:8px;">☵ Dashboard</span>
-        <span style="background:#d4f938; color:#16181d; font-size:0.7rem; font-weight:800; width:20px; height:20px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;">3</span>
+    <div class="sidebar-brand">
+        <div class="brand-icon">⚡</div>
+        <div>
+            <div class="brand-text">SkillGraph AI</div>
+            <div class="brand-tagline">Navigate Your Future</div>
+        </div>
     </div>
-    <div class="nav-item-inactive">⌂ Pathways</div>
-    <div class="nav-item-inactive">⚲ Prerequisite DAG</div>
-    <div class="nav-item-inactive">⚙ Reports</div>
     """, unsafe_allow_html=True)
 
-    st.markdown("<hr style='border-color:rgba(255,255,255,0.08); margin:18px 0 16px 0;'/>", unsafe_allow_html=True)
+    st.markdown("<hr style='border:none; border-top:1px solid #E2E8F0; margin:12px 0 16px 0;'/>", unsafe_allow_html=True)
 
-    # Target Career Selection
+    # 3. Target Career Selection
+    current_index = 0
+    if st.session_state.selected_career_target in career_names:
+        current_index = career_names.index(st.session_state.selected_career_target)
+
     target_career = st.selectbox(
-        "Target Career",
+        "🎯 Target Career Pathway",
         options=career_names,
-        index=0 if "AI Engineer" in career_names else 0
+        index=current_index,
+        key="sidebar_target_career_box",
+        help="Select which career role to navigate towards."
     )
+    st.session_state.selected_career_target = target_career
 
-    # Existing Skills
+    # 4. Existing Skills Selection
     default_skills = ["Python", "Git"]
     existing_skills = st.multiselect(
-        "Skills You Already Know",
+        "🛠️ Skills You Already Master",
         options=all_skill_names,
-        default=[s for s in default_skills if s in all_skill_names]
+        default=[s for s in default_skills if s in all_skill_names],
+        help="Select the skills you already know."
     )
 
-    # Study parameters
-    weekly_hours = st.slider("Weekly Study Hours", min_value=5, max_value=40, value=15, step=5)
-    education_level = st.selectbox("Education Level", ["Bachelor's Degree", "Master's / Ph.D.", "Self-Taught / Bootcamp"], index=0)
+    # 5. Weekly Learning Hours & Education
+    weekly_hours = st.slider(
+        "⏱️ Weekly Learning Hours",
+        min_value=5,
+        max_value=40,
+        value=15,
+        step=5,
+        help="Dedicated hours per week for skill development."
+    )
 
-    st.button("⚡ Re-analyze Career Path", type="primary", use_container_width=True)
+    education_level = st.selectbox(
+        "🎓 Education Level",
+        ["Bachelor's Degree", "Master's / Ph.D.", "Self-Taught / Bootcamp", "High School / Associate"],
+        index=0
+    )
 
-    # Upgrade to Pro Card (Flux Style)
-    st.markdown("""
-    <div class="pro-card">
-        <div class="pro-card-title">Neo4j Graph Pro</div>
-        <div class="pro-card-sub">hackFront India Graph Builder Sprint Edition. Powered by Neo4j Aura property graphs.</div>
-        <div class="pro-card-btn">Live Graph Ready</div>
-    </div>
-    """, unsafe_allow_html=True)
+    analyze_btn = st.button("⚡ Analyze My Career Path", use_container_width=True)
 
-    st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
+    st.markdown("<hr style='border:none; border-top:1px solid #E2E8F0; margin:16px 0;'/>", unsafe_allow_html=True)
 
-    # Neo4j Database Connection status
+    # 6. Database Connection Status & Version
     if service.is_live_mode:
         st.markdown(f"""
-        <div style="background:rgba(212,249,56,0.15); border:1px solid #d4f938; border-radius:12px; padding:10px; font-size:0.75rem; color:#d4f938;">
-            <b>🟢 Neo4j Aura Connected</b><br>
-            <span style="font-size:0.68rem; color:#e0e7ff;">{service.client.uri}</span>
+        <div style="background:#E8F8F2; border:1px solid #16A875; border-radius:12px; padding:10px; font-size:0.78rem; color:#16A875;">
+            <b>🟢 Connected to Neo4j Aura</b><br>
+            <span style="font-size:0.7rem; color:#475467;">{service.client.uri}</span>
         </div>
         """, unsafe_allow_html=True)
     else:
         st.markdown("""
-        <div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:10px; font-size:0.75rem; color:#d0d5dd;">
+        <div style="background:#FFF7EC; border:1px solid #F4A62A; border-radius:12px; padding:10px; font-size:0.78rem; color:#B45309;">
             <b>⚡ Demo Mode Active</b><br>
-            <span style="font-size:0.68rem; color:#98a2b3;">Running on seed graph snapshot. Enter credentials below for live cluster.</span>
+            <span style="font-size:0.7rem; color:#6B7280;">Graph snapshot loaded. Connect live Neo4j Aura below.</span>
         </div>
         """, unsafe_allow_html=True)
 
-    with st.expander("⚙️ Neo4j Credentials"):
+    with st.expander("⚙️ Neo4j Database Credentials"):
         new_uri = st.text_input("NEO4J_URI", value=st.session_state.custom_neo4j_uri or "")
         new_user = st.text_input("NEO4J_USERNAME", value=st.session_state.custom_neo4j_user or "neo4j")
         new_pwd = st.text_input("NEO4J_PASSWORD", type="password", value=st.session_state.custom_neo4j_pwd)
-        if st.button("Connect Cluster", use_container_width=True):
+        if st.button("Connect Live Cluster", use_container_width=True):
             st.session_state.custom_neo4j_uri = new_uri
             st.session_state.custom_neo4j_user = new_user
             st.session_state.custom_neo4j_pwd = new_pwd
             st.cache_resource.clear()
             st.rerun()
+
+    st.markdown("""
+    <div style="text-align:center; font-size:0.7rem; color:#94A3B8; margin-top:14px;">
+        v1.2.0 • Neo4j × hackFront India Build Sprint
+    </div>
+    """, unsafe_allow_html=True)
 
 
 # ==============================================================================
@@ -785,423 +660,426 @@ total_h = analysis["total_hours"]
 
 
 # ==============================================================================
-# MAIN DASHBOARD: TOP NAVBAR
-# ==============================================================================
-st.markdown("""
-<div class="top-navbar">
-    <div class="user-profile">
-        <div class="user-avatar">👨‍💻</div>
-        <div>
-            <div class="user-info-name">Sanjay N <span style="font-size:0.75rem; color:#98a2b3;">▾</span></div>
-            <div class="user-info-email">sanjay@skillgraph.ai</div>
-        </div>
-    </div>
-    <div class="top-actions">
-        <div class="search-pill">
-            <span>🔍</span>
-            <span>Search skills, careers, capstones...</span>
-        </div>
-        <div class="date-pill">17 Oct, 2026</div>
-        <div class="dropdown-pill">Today ▾</div>
-        <div class="notif-bell">
-            🔔
-            <div class="notif-badge">2</div>
-        </div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-
-# ==============================================================================
-# MAIN DASHBOARD: HERO TITLE
+# MAIN CONTENT AREA: HEADER
 # ==============================================================================
 st.markdown(f"""
-<div class="overview-header">
-    <div class="overview-title">Career Overview</div>
-    <div class="overview-subtitle">Take control of your {target_career} career trajectory today!</div>
+<div class="top-header-row">
+    <div>
+        <div class="header-eyebrow">AI-POWERED CAREER INTELLIGENCE</div>
+        <div class="header-title">Build Your Future With SkillGraph AI</div>
+        <div class="header-subtitle">
+            Discover your skill gaps, follow a personalized learning path, and turn your career goals into real-world projects.
+        </div>
+    </div>
+    <div class="header-user-pill">
+        <span style="font-size:1.1rem;">👤</span>
+        <span>Hi Sanjay N ▾</span>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
 
 # ==============================================================================
-# BENTO GRID: ROW 1 (THE 5 CARDS EXACTLY LIKE THE REFERENCE IMAGE!)
+# WELCOME / CAREER GOAL HERO BANNER
 # ==============================================================================
-col_left, col_mid_right = st.columns([1.1, 1.9], gap="medium")
+st.markdown(f"""
+<div class="hero-banner">
+    <div class="hero-greeting">Hi Sanjay N , your next required action</div>
+    <div class="hero-heading">Your Next Career Move Starts Here: {target_career}</div>
+    <div class="hero-desc">
+        Understand where you stand today, identify the skills you need, and follow a graph-powered roadmap to your target career.
+    </div>
 
-# ------------------------------------------------------------------------------
-# CARD 1: LARGE LEFT BENTO CARD ("Energy Used" -> "Skill Energy")
-# ------------------------------------------------------------------------------
-with col_left:
-    st.markdown(f"""
-    <div class="bento-card">
-        <div>
-            <div class="bento-header">
-                <div class="bento-title">⚡ Skill Energy</div>
-                <div class="bento-more">⋮</div>
-            </div>
-
-            <div class="hero-stat-row">
-                <div class="hero-stat-number">{coverage}%</div>
-                <div class="hero-stat-unit">coverage today</div>
-                <div class="pill-badge-lime">+12%</div>
-            </div>
-
-            <!-- Overlapping Geometric Bubbles -->
-            <div class="bubbles-container">
-                <div class="bubble-lilac">
-                    <div class="bubble-val" style="color:#16181d;">{matched_cnt}</div>
-                    <div class="bubble-lbl" style="color:#16181d;">mastered</div>
-                </div>
-                <div class="bubble-charcoal">
-                    <div class="bubble-val" style="color:#ffffff;">{missing_cnt}</div>
-                    <div class="bubble-lbl" style="color:#98a2b3;">to learn</div>
-                </div>
-                <div class="bubble-lime">
-                    <div class="bubble-val" style="color:#16181d;">{ready_cnt}</div>
-                    <div class="bubble-lbl" style="color:#16181d;">ready</div>
-                </div>
-            </div>
-
-            <!-- Horizontal Progress Bars -->
-            <div style="margin-top:16px;">
-                <div class="prog-item">
-                    <div class="prog-label-left">65<span>%</span></div>
-                    <div class="prog-track">
-                        <div class="prog-fill-lilac" style="width: 65%;"></div>
-                    </div>
-                    <div class="prog-label-right">
-                        Core Skills <span class="dot-indicator" style="background:#b8b2ff;"></span>
-                    </div>
-                </div>
-
-                <div class="prog-item">
-                    <div class="prog-label-left">45<span>%</span></div>
-                    <div class="prog-track">
-                        <div class="prog-fill-dark" style="width: 45%;"></div>
-                    </div>
-                    <div class="prog-label-right">
-                        Tooling <span class="dot-indicator" style="background:#16181d;"></span>
-                    </div>
-                </div>
-
-                <div class="prog-item">
-                    <div class="prog-label-left">30<span>%</span></div>
-                    <div class="prog-track">
-                        <div class="prog-fill-lime" style="width: 30%;"></div>
-                    </div>
-                    <div class="prog-label-right">
-                        Advanced <span class="dot-indicator" style="background:#d4f938;"></span>
-                    </div>
-                </div>
-            </div>
+    <div class="hero-progress-box">
+        <div class="hero-prog-header">
+            <span>Career Readiness Progress</span>
+            <span>{coverage}% Complete</span>
+        </div>
+        <div class="hero-prog-track">
+            <div class="hero-prog-fill" style="width: {coverage}%;"></div>
+        </div>
+        <div style="font-size:0.78rem; color:#E0E7FF;">
+            Complete your foundational milestones to unlock {missing_cnt} remaining competencies.
         </div>
     </div>
-    """, unsafe_allow_html=True)
 
-
-# ------------------------------------------------------------------------------
-# RIGHT SIDE: 4 BENTO CARDS (2x2 GRID)
-# ------------------------------------------------------------------------------
-with col_mid_right:
-    row1_col1, row1_col2 = st.columns(2, gap="medium")
-
-    # CARD 2: "Heart Rate" -> "Target Alignment"
-    with row1_col1:
-        st.markdown(f"""
-        <div class="bento-card" style="margin-bottom:20px;">
-            <div class="bento-header">
-                <div class="bento-title">♡ Target Alignment</div>
-                <div class="bento-more">⋮</div>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:baseline;">
-                <div style="display:flex; align-items:baseline; gap:4px;">
-                    <span style="font-size:2.2rem; font-weight:800; color:#16181d;">{coverage}</span>
-                    <span style="font-size:0.85rem; color:#667085; font-weight:600;">% score</span>
-                </div>
-                <div style="text-align:right; font-size:0.75rem; color:#667085; line-height:1.2;">
-                    Avg<br><b style="color:#16181d; font-size:0.85rem;">75% Benchmark</b>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # CARD 3: "Activity" -> "Learning Velocity"
-        st.markdown(f"""
-        <div class="bento-card">
-            <div class="bento-header">
-                <div class="bento-title">🏃 Learning Velocity</div>
-                <div class="bento-more">⋮</div>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:baseline;">
-                <div style="display:flex; align-items:baseline; gap:4px;">
-                    <span style="font-size:2.2rem; font-weight:800; color:#16181d;">{weekly_hours}</span>
-                    <span style="font-size:0.85rem; color:#667085; font-weight:600;">hrs/wk</span>
-                </div>
-                <div style="text-align:right; font-size:0.75rem; color:#667085; line-height:1.2;">
-                    Active<br><b style="color:#16181d; font-size:0.85rem;">~{weeks} Wks</b>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    # CARD 4: "Wellness Index" -> "Competency Dot-Matrix"
-    with row1_col2:
-        st.markdown(f"""
-        <div class="bento-card" style="height:100%;">
-            <div class="bento-header">
-                <div class="bento-title">% Competency Index</div>
-                <div class="bento-more">⋮</div>
-            </div>
-            <div style="display:flex; align-items:baseline; gap:8px;">
-                <span style="font-size:2.2rem; font-weight:800; color:#16181d;">{coverage}</span>
-                <span style="font-size:0.85rem; color:#667085; font-weight:600;">%</span>
-                <span class="pill-badge-lime">+10%</span>
-            </div>
-            
-            <!-- Signature Lavender Dot-Matrix Grid -->
-            <div class="dot-matrix">
-                <div class="matrix-dot" style="opacity:0.2;"></div>
-                <div class="matrix-dot" style="opacity:0.4;"></div>
-                <div class="matrix-dot" style="opacity:0.8;"></div>
-                <div class="matrix-dot" style="opacity:0.5;"></div>
-                <div class="matrix-dot" style="opacity:0.9;"></div>
-                <div class="matrix-dot" style="opacity:0.3;"></div>
-                <div class="matrix-dot" style="opacity:0.7;"></div>
-
-                <div class="matrix-dot" style="opacity:0.4;"></div>
-                <div class="matrix-dot" style="opacity:0.8;"></div>
-                <div class="matrix-dot" style="opacity:0.9;"></div>
-                <div class="matrix-dot" style="opacity:0.6;"></div>
-                <div class="matrix-dot" style="opacity:0.7;"></div>
-                <div class="matrix-dot" style="opacity:0.9;"></div>
-                <div class="matrix-dot" style="opacity:0.8;"></div>
-
-                <div class="matrix-dot" style="opacity:0.6;"></div>
-                <div class="matrix-dot" style="opacity:0.9;"></div>
-                <div class="matrix-dot" style="opacity:0.4;"></div>
-                <div class="matrix-dot" style="opacity:0.8;"></div>
-                <div class="matrix-dot" style="opacity:0.7;"></div>
-                <div class="matrix-dot" style="opacity:0.5;"></div>
-                <div class="matrix-dot" style="opacity:0.9;"></div>
-
-                <div class="matrix-dot" style="opacity:0.7;"></div>
-                <div class="matrix-dot" style="opacity:0.8;"></div>
-                <div class="matrix-dot" style="opacity:0.7;"></div>
-                <div class="matrix-dot" style="opacity:0.9;"></div>
-                <div class="matrix-dot" style="opacity:0.6;"></div>
-                <div class="matrix-dot" style="opacity:0.8;"></div>
-                <div class="matrix-dot" style="opacity:0.7;"></div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.markdown("<div style='height:20px;'></div>", unsafe_allow_html=True)
-
-    # CARD 5: LARGE DARK BENTO CARD ("Sleep Analysis" -> "Milestone Roadmap & Graph Velocity")
-    st.markdown(f"""
-    <div class="dark-bento-card">
-        <div class="dark-header">
-            <div class="dark-title">🌙 Milestone Roadmap Analysis</div>
-            <div class="dark-pill">Monthly ▾</div>
-        </div>
-
-        <div class="dark-stats-row">
-            <div class="dark-stat-item">
-                <div class="dark-marker-lime"></div>
-                <div>
-                    <div class="dark-stat-val">85<span style="font-size:1rem; font-weight:600;">%</span></div>
-                    <div class="dark-stat-lbl">Prerequisite Efficiency</div>
-                </div>
-            </div>
-
-            <div class="dark-stat-item">
-                <div class="dark-marker-lilac"></div>
-                <div>
-                    <div class="dark-stat-val">{total_h}<span style="font-size:1rem; font-weight:600;">h</span></div>
-                    <div class="dark-stat-lbl">Total Estimated Effort</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Signature Striped Milestone Bars with Highlighted Lime & Lilac Bars -->
-        <div class="bars-chart-container">
-            <div class="bar-col">
-                <div class="bar-track bar-striped" style="height:45px;"></div>
-                <div class="bar-month">Jun</div>
-            </div>
-            <div class="bar-col">
-                <div class="bar-track bar-striped" style="height:55px;"></div>
-                <div class="bar-month">Jul</div>
-            </div>
-            <div class="bar-col">
-                <div class="bar-track bar-striped" style="height:40px;"></div>
-                <div class="bar-month">Aug</div>
-            </div>
-            <div class="bar-col">
-                <div class="bar-track bar-active-lime" style="height:85px;"></div>
-                <div class="bar-month" style="color:#d4f938; font-weight:800;">Sept ↗</div>
-            </div>
-            <div class="bar-col">
-                <div class="bar-track bar-active-lilac" style="height:65px;"></div>
-                <div class="bar-month" style="color:#b8b2ff; font-weight:700;">Oct</div>
-            </div>
-            <div class="bar-col">
-                <div class="bar-track bar-striped" style="height:55px;"></div>
-                <div class="bar-month">Nov</div>
-            </div>
-            <div class="bar-col">
-                <div class="bar-track bar-striped" style="height:50px;"></div>
-                <div class="bar-month">Dec</div>
-            </div>
-        </div>
+    <div class="hero-pills-row">
+        <div class="hero-pill">✓ {matched_cnt} Skills Mastered</div>
+        <div class="hero-pill">⚡ {ready_cnt} Ready to Learn</div>
+        <div class="hero-pill">🔒 {blocked_cnt} Locked by Prerequisites</div>
+        <div class="hero-pill">⏱️ ~{weeks} Wks Estimated</div>
     </div>
-    """, unsafe_allow_html=True)
-
-
-st.markdown("<div style='height:30px;'></div>", unsafe_allow_html=True)
-
-
-# ==============================================================================
-# SECTION 2: PREREQUISITE-AWARE LEARNING ROADMAP (WHITE BENTO CARDS)
-# ==============================================================================
-st.markdown("""
-<div class="section-card">
-    <div class="section-heading">🗺️ Prerequisite-Aware Learning Roadmap</div>
-    <div style="font-size:0.86rem; color:#667085; margin-bottom:18px;">
-        Ordered via Kahn's topological sorting on Neo4j prerequisite edges. Foundational blockers are resolved before advanced specializations.
-    </div>
+</div>
 """, unsafe_allow_html=True)
 
-for stage in analysis["roadmap_stages"]:
-    stage_num = stage["stage_num"]
-    title = stage["title"]
-    desc = stage["description"]
-    hours = stage["hours"]
-    skills_in_stage = stage.get("skills", [])
-    projects_in_stage = stage.get("projects", [])
 
+# ==============================================================================
+# CAREER ANALYTICS: 4 KPI CARDS
+# ==============================================================================
+kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+
+with kpi1:
     st.markdown(f"""
-    <div style="background:#f8f9fa; border:1px solid rgba(0,0,0,0.05); border-radius:16px; padding:16px 20px; margin-bottom:14px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <div style="font-weight:800; font-size:1rem; color:#16181d;">{title}</div>
-            <span class="pill-badge-lime">~{hours} Hours</span>
+    <div class="kpi-card-white">
+        <div class="kpi-glow-circle" style="background:radial-gradient(circle, rgba(40,120,240,0.15) 0%, rgba(255,255,255,0) 70%);"></div>
+        <div>
+            <div class="kpi-num" style="color:#2878F0;">{coverage}%</div>
+            <div class="kpi-lbl">Career Readiness</div>
         </div>
-        <div style="font-size:0.82rem; color:#667085; margin-bottom:12px;">{desc}</div>
+        <div style="font-size:0.75rem; color:#16A875; font-weight:700; margin-top:8px;">
+            {matched_cnt} of {analysis['total_required']} skills verified
+        </div>
+    </div>
     """, unsafe_allow_html=True)
 
-    if skills_in_stage:
-        cols = st.columns(min(len(skills_in_stage), 3))
-        for idx, s in enumerate(skills_in_stage):
-            col_target = cols[idx % len(cols)]
-            with col_target:
-                st.markdown(f"""
-                <div style="background:#ffffff; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:12px; margin-bottom:6px;">
-                    <div style="font-weight:700; color:#16181d; font-size:0.88rem;">{s['name']}</div>
-                    <div style="font-size:0.75rem; color:#667085;">{s.get('category', '')} • {s.get('difficulty', '')}</div>
-                </div>
-                """, unsafe_allow_html=True)
+with kpi2:
+    st.markdown(f"""
+    <div class="kpi-card-white">
+        <div class="kpi-glow-circle" style="background:radial-gradient(circle, rgba(22,168,117,0.15) 0%, rgba(255,255,255,0) 70%);"></div>
+        <div>
+            <div class="kpi-num" style="color:#16A875;">{matched_cnt}</div>
+            <div class="kpi-lbl">Skills Mastered</div>
+        </div>
+        <div style="font-size:0.75rem; color:#6B7280; font-weight:600; margin-top:8px;">
+            Ready to build upon without blockers
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    if projects_in_stage:
-        cols = st.columns(min(len(projects_in_stage), 2))
-        for idx, p in enumerate(projects_in_stage):
-            col_target = cols[idx % len(cols)]
-            with col_target:
-                p_skills = "".join([f"<span class='badge-flux-missing'>{sk}</span>" for sk in p.get("matched_skills", [])])
+with kpi3:
+    st.markdown(f"""
+    <div class="kpi-card-white">
+        <div class="kpi-glow-circle" style="background:radial-gradient(circle, rgba(244,166,42,0.15) 0%, rgba(255,255,255,0) 70%);"></div>
+        <div>
+            <div class="kpi-num" style="color:#F4A62A;">{missing_cnt}</div>
+            <div class="kpi-lbl">Skills to Learn</div>
+        </div>
+        <div style="font-size:0.75rem; color:#6B7280; font-weight:600; margin-top:8px;">
+            {ready_cnt} ready now • {blocked_cnt} locked
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with kpi4:
+    st.markdown(f"""
+    <div class="kpi-card-white">
+        <div class="kpi-glow-circle" style="background:radial-gradient(circle, rgba(121,85,232,0.15) 0%, rgba(255,255,255,0) 70%);"></div>
+        <div>
+            <div class="kpi-num" style="color:#7955E8;">{len(analysis['projects'])}</div>
+            <div class="kpi-lbl">Recommended Projects</div>
+        </div>
+        <div style="font-size:0.75rem; color:#6B7280; font-weight:600; margin-top:8px;">
+            Portfolio capstones available
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+st.markdown("<div style='height:20px;'></div>", unsafe_allow_html=True)
+
+
+# ==============================================================================
+# SEGMENTED DASHBOARD TABS
+# ==============================================================================
+main_tab1, main_tab2, main_tab3, main_tab4, main_tab5, main_tab6 = st.tabs([
+    "📊 Skill Gap Analysis",
+    "🗺️ Learning Roadmap",
+    "💻 Recommended Projects",
+    "🧭 Explore Careers",
+    "🕸️ Knowledge Graph",
+    "🔍 Judge Cypher Inspector"
+])
+
+
+# ==============================================================================
+# TAB 1: PERSONALIZED SKILL GAP ANALYSIS
+# ==============================================================================
+with main_tab1:
+    st.markdown("""
+    <div class="saas-card">
+        <div class="saas-card-title">📊 Your Skill Gap Analysis</div>
+        <div class="saas-card-subtitle">
+            Neo4j graph evaluation comparing required role competencies against your verified skill set.
+        </div>
+    """, unsafe_allow_html=True)
+
+    gap_col_left, gap_col_right = st.columns([1, 1.4], gap="large")
+
+    with gap_col_left:
+        # Plotly Circular Donut Chart
+        donut_fig = go.Figure(data=[go.Pie(
+            labels=["Mastered", "Ready to Learn", "Blocked by Prereqs"],
+            values=[matched_cnt, ready_cnt, blocked_cnt],
+            hole=0.72,
+            marker=dict(colors=["#16A875", "#2878F0", "#F4A62A"], line=dict(color="#FFFFFF", width=3)),
+            textinfo="none",
+            hoverinfo="label+value+percent"
+        )])
+
+        donut_fig.update_layout(
+            showlegend=True,
+            legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5, font=dict(color="#475467", size=11)),
+            margin=dict(l=10, r=10, t=10, b=25),
+            height=260,
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            annotations=[dict(text=f"<b>{coverage}%</b><br><span style='font-size:11px;color:#6B7280;'>Readiness</span>", x=0.5, y=0.5, font_size=24, font_color="#18223B", showarrow=False)]
+        )
+        st.plotly_chart(donut_fig, use_container_width=True, config={"displayModeBar": False})
+
+        st.markdown(f"""
+        <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:14px; padding:14px; text-align:center;">
+            <div style="font-size:0.85rem; color:#475467; font-weight:600;">
+                Career Readiness: <b style="color:#2878F0;">{coverage}%</b> • 
+                Mastered: <b style="color:#16A875;">{matched_cnt}</b> • 
+                Missing: <b style="color:#F4A62A;">{missing_cnt}</b>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with gap_col_right:
+        # Three Skill Status Categories
+        st.markdown("<div style='font-weight:700; color:#18223B; margin-bottom:6px;'>🟢 Skills I Already Have</div>", unsafe_allow_html=True)
+        if analysis["matched_skills"]:
+            badges_html = "".join([f"<span class='badge-mastered'>✓ {s['name']}</span>" for s in analysis["matched_skills"]])
+            st.markdown(f"<div style='margin-bottom:18px;'>{badges_html}</div>", unsafe_allow_html=True)
+        else:
+            st.info("No matching skills selected yet.")
+
+        st.markdown("<div style='font-weight:700; color:#18223B; margin-bottom:6px;'>🔵 Ready to Learn (Prerequisites Satisfied)</div>", unsafe_allow_html=True)
+        if analysis["ready_to_learn"]:
+            ready_html = "".join([f"<span class='badge-ready'>⚡ {s['name']} (~{s.get('estimated_hours', 30)}h)</span>" for s in analysis["ready_to_learn"]])
+            st.markdown(f"<div style='margin-bottom:18px;'>{ready_html}</div>", unsafe_allow_html=True)
+        else:
+            st.success("All your missing skills are either cleared or waiting on blockers.")
+
+        st.markdown("<div style='font-weight:700; color:#18223B; margin-bottom:6px;'>🟡 Locked by Prerequisites</div>", unsafe_allow_html=True)
+        if analysis["blocked_skills"]:
+            for b in analysis["blocked_skills"]:
+                prereq_str = ", ".join(b.get("blocked_by", []))
                 st.markdown(f"""
-                <div style="background:#ffffff; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:12px; margin-bottom:6px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-weight:700; color:#16181d; font-size:0.9rem;">{p['name']}</span>
-                        <span class="pill-badge-lilac">~{p['estimated_hours']}h</span>
-                    </div>
-                    <div style="font-size:0.8rem; color:#667085; margin:6px 0;">{p['description']}</div>
-                    <div>{p_skills}</div>
+                <div style="background:#FFFDF7; border:1px solid rgba(244,166,42,0.3); border-radius:10px; padding:8px 14px; margin-bottom:6px; font-size:0.84rem;">
+                    <b style="color:#18223B;">{b['name']}</b>
+                    <span style="color:#F4A62A; font-weight:600; margin-left:8px;">⚠️ Requires {prereq_str} first</span>
                 </div>
                 """, unsafe_allow_html=True)
+        else:
+            st.success("Zero skills blocked! All your remaining missing skills can be studied in parallel.")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-st.markdown("</div>", unsafe_allow_html=True)
-
 
 # ==============================================================================
-# SECTION 3: RECOMMENDED CAPSTONE PROJECTS
+# TAB 2: PERSONALIZED LEARNING ROADMAP
 # ==============================================================================
-st.markdown("""
-<div class="section-card">
-    <div class="section-heading">💻 Capstone Projects Developing Missing Skills</div>
-""", unsafe_allow_html=True)
+with main_tab2:
+    st.markdown(f"""
+    <div class="saas-card">
+        <div class="saas-card-title">🗺️ Your Learning Roadmap</div>
+        <div class="saas-card-subtitle">
+            Prerequisite-aware topological sequence: Foundations → Core Competencies → Advanced Specialization.
+            Estimated total effort: <b>{total_h} hours</b> (~{weeks} weeks at {weekly_hours}h/week).
+        </div>
+    """, unsafe_allow_html=True)
 
-if analysis["projects"]:
-    proj_cols = st.columns(2)
-    for idx, proj in enumerate(analysis["projects"]):
-        target_col = proj_cols[idx % 2]
-        with target_col:
-            skills_html = "".join([f"<span class='badge-flux-mastered'>{s}</span>" for s in proj.get("matched_skills", [])])
-            st.markdown(f"""
-            <div style="background:#f8f9fa; border:1px solid rgba(0,0,0,0.05); border-radius:18px; padding:18px; margin-bottom:14px;">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                    <div>
-                        <div style="font-weight:800; font-size:1.05rem; color:#16181d;">{proj['name']}</div>
-                        <div style="font-size:0.75rem; color:#667085; font-weight:600; text-transform:uppercase; margin-bottom:8px;">
-                            {proj['difficulty']} • Est. {proj['estimated_hours']} Hours
-                        </div>
+    step_counter = 1
+    for s in analysis["learning_order"]:
+        s_name = s["name"]
+        diff = s.get("difficulty", "Intermediate")
+        hrs = s.get("estimated_hours", 30)
+        desc = s.get("description", "")
+
+        # Check status
+        is_blocked = any(b["name"] == s_name for b in analysis["blocked_skills"])
+        status_label = "Locked by Prerequisites" if is_blocked else "Ready to Learn Now"
+        status_class = "step-number-blocked" if is_blocked else "step-number-circle"
+        badge_style = "badge-blocked" if is_blocked else "badge-ready"
+
+        # Find matching resource
+        matched_res = next((r for r in analysis["resources"] if r["skill_name"] == s_name), None)
+        res_info = f"<b>Resource:</b> {matched_res['name']} ({matched_res['platform']} • {matched_res['duration_hours']}h)" if matched_res else "Self-guided documentation & labs"
+
+        st.markdown(f"""
+        <div class="timeline-step">
+            <div class="{status_class}">{step_counter}</div>
+            <div style="flex:1;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <div style="font-weight:800; font-size:1.02rem; color:#18223B;">
+                        {s_name}
+                        <span class="{badge_style}" style="font-size:0.75rem; margin-left:8px;">{status_label}</span>
                     </div>
-                    <a href="{proj.get('url', '#')}" target="_blank" style="text-decoration:none; font-size:0.78rem; background:#16181d; color:#ffffff; padding:5px 12px; border-radius:20px; font-weight:700;">
-                        GitHub Template ↗
-                    </a>
+                    <span style="font-size:0.78rem; font-weight:700; color:#2878F0; background:#EDF4FF; padding:3px 10px; border-radius:12px;">
+                        {diff} • ~{hrs}h
+                    </span>
                 </div>
-                <div style="font-size:0.84rem; color:#475467; line-height:1.45; margin-bottom:10px;">{proj['description']}</div>
+                <div style="font-size:0.84rem; color:#475467; line-height:1.45; margin-bottom:6px;">{desc}</div>
+                <div style="font-size:0.8rem; color:#6B7280; display:flex; justify-content:space-between; align-items:center;">
+                    <span>📚 {res_info}</span>
+                    {f'<a href="{matched_res["url"]}" target="_blank" style="color:#2878F0; font-weight:700; text-decoration:none;">Open Course ↗</a>' if matched_res else ''}
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        step_counter += 1
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+# ==============================================================================
+# TAB 3: RECOMMENDED CAPSTONE PROJECTS
+# ==============================================================================
+with main_tab3:
+    st.markdown("""
+    <div class="saas-card">
+        <div class="saas-card-title">💻 Build Projects That Prove Your Skills</div>
+        <div class="saas-card-subtitle">
+            Portfolio projects mapped directly from the Neo4j graph that develop your missing competencies.
+        </div>
+    """, unsafe_allow_html=True)
+
+    if analysis["projects"]:
+        proj_cols = st.columns(2, gap="medium")
+        for idx, proj in enumerate(analysis["projects"]):
+            target_col = proj_cols[idx % 2]
+            with target_col:
+                skills_html = "".join([f"<span class='badge-ready'>{s}</span>" for s in proj.get("matched_skills", [])])
+                st.markdown(f"""
+                <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:18px; padding:20px; margin-bottom:16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                        <div>
+                            <div style="font-weight:800; font-size:1.05rem; color:#18223B;">{proj['name']}</div>
+                            <div style="font-size:0.75rem; color:#2878F0; font-weight:700; text-transform:uppercase; margin-top:2px;">
+                                {proj['difficulty']} • Est. {proj['estimated_hours']} Hours
+                            </div>
+                        </div>
+                        <a href="{proj.get('url', '#')}" target="_blank" style="text-decoration:none; font-size:0.78rem; background:#2878F0; color:#FFFFFF; padding:6px 14px; border-radius:20px; font-weight:700;">
+                            View Project ↗
+                        </a>
+                    </div>
+                    <div style="font-size:0.85rem; color:#475467; line-height:1.5; margin-bottom:12px;">{proj['description']}</div>
+                    <div>
+                        <span style="font-size:0.72rem; color:#94A3B8; font-weight:700;">SKILLS DEVELOPED:</span><br>
+                        {skills_html}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+    else:
+        st.info("No projects needed for the currently missing skills.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+# ==============================================================================
+# TAB 4: CAREER EXPLORATION
+# ==============================================================================
+with main_tab4:
+    st.markdown("""
+    <div class="saas-card">
+        <div class="saas-card-title">🧭 Explore Career Trajectories</div>
+        <div class="saas-card-subtitle">
+            Compare target roles available in the Neo4j knowledge graph and evaluate your instant readiness score.
+        </div>
+    """, unsafe_allow_html=True)
+
+    career_cols = st.columns(3, gap="medium")
+    for idx, c in enumerate(careers_data):
+        target_col = career_cols[idx % 3]
+        c_name = c["name"]
+        c_reqs = service.get_career_required_skills(c_name)
+        c_total = len(c_reqs)
+        c_matched = len([s for s in c_reqs if s["name"] in existing_skills])
+        c_cov = round((c_matched / c_total * 100), 1) if c_total > 0 else 0
+
+        with target_col:
+            st.markdown(f"""
+            <div class="career-grid-card">
                 <div>
-                    <span style="font-size:0.72rem; color:#98a2b3; font-weight:700;">SKILLS DEVELOPED:</span><br>
-                    {skills_html}
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                        <span style="font-size:0.75rem; font-weight:700; color:#7955E8; text-transform:uppercase;">{c.get('category', 'Tech')}</span>
+                        <span style="font-size:0.75rem; font-weight:700; color:#16A875;">{c.get('avg_salary_range', '$100k+')}</span>
+                    </div>
+                    <div style="font-size:1.15rem; font-weight:800; color:#18223B; margin-bottom:6px;">{c_name}</div>
+                    <div style="font-size:0.82rem; color:#6B7280; line-height:1.45; margin-bottom:14px;">{c.get('description', '')}</div>
+                </div>
+                <div>
+                    <div style="display:flex; justify-content:space-between; font-size:0.78rem; font-weight:700; margin-bottom:4px;">
+                        <span style="color:#6B7280;">Skill Coverage</span>
+                        <span style="color:#2878F0;">{c_cov}% ({c_matched}/{c_total})</span>
+                    </div>
+                    <div style="height:6px; background:#EDF1FD; border-radius:10px; overflow:hidden; margin-bottom:14px;">
+                        <div style="width:{c_cov}%; height:100%; background:#2878F0; border-radius:10px;"></div>
+                    </div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
-st.markdown("</div>", unsafe_allow_html=True)
+            if st.button(f"Explore {c_name}", key=f"btn_explore_{c['id']}", use_container_width=True):
+                st.session_state.selected_career_target = c_name
+                st.rerun()
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ==============================================================================
-# SECTION 4: INTERACTIVE KNOWLEDGE GRAPH
+# TAB 5: INTERACTIVE KNOWLEDGE GRAPH
 # ==============================================================================
-st.markdown("""
-<div class="section-card">
-    <div class="section-heading">🕸️ Interactive Knowledge Graph</div>
-    <div style="font-size:0.86rem; color:#667085; margin-bottom:16px;">
-        Explore the live Neo4j subgraph linking careers, skills, prerequisites, capstones, and resources.
-    </div>
-""", unsafe_allow_html=True)
+with main_tab5:
+    st.markdown("""
+    <div class="saas-card">
+        <div class="saas-card-title">🕸️ Explore the Career Knowledge Graph</div>
+        <div class="saas-card-subtitle">
+            Interactive force-directed graph displaying Career nodes, Skill nodes, Prerequisite edges, Projects, and Learning Resources.
+        </div>
+    """, unsafe_allow_html=True)
 
-graph_html = render_interactive_graph(subgraph, height_px=540)
-st.components.v1.html(graph_html, height=560, scrolling=False)
+    graph_html = render_interactive_graph(subgraph, height_px=560)
+    st.components.v1.html(graph_html, height=580, scrolling=False)
 
-st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ==============================================================================
-# SECTION 5: LIVE CYPHER QUERY INSPECTOR
+# TAB 6: JUDGE CYPHER QUERY INSPECTOR
 # ==============================================================================
-with st.expander("🔍 Hackathon Judges: View Live Cypher Queries Powering This Graph"):
+with main_tab6:
+    st.markdown("""
+    <div class="saas-card">
+        <div class="saas-card-title">🔍 Hackathon Judges: View Live Cypher Queries</div>
+        <div class="saas-card-subtitle">
+            Demonstrates real Cypher traversal patterns executed against the Neo4j Graph Database.
+        </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("#### 1. Career Requirements Traversal")
     st.code("""
-// 1. Fetch Career Requirements
 MATCH (c:Career {name: $career_name})-[r:REQUIRES_SKILL]->(s:Skill)
 RETURN s.name AS name, s.category AS category, s.difficulty AS difficulty,
-       s.estimated_hours AS estimated_hours, r.importance AS importance;
+       s.estimated_hours AS estimated_hours, r.importance AS importance
+ORDER BY s.name;
+    """, language="cypher")
 
-// 2. Prerequisite Dependencies (Kahn's Topological Sort)
+    st.markdown("#### 2. Prerequisite Dependencies Traversal")
+    st.code("""
 MATCH (p:Skill)-[:PREREQUISITE_OF]->(a:Skill)
 RETURN p.name AS prerequisite, a.name AS advanced;
+    """, language="cypher")
 
-// 3. Project Recommendations for Missing Competencies
+    st.markdown("#### 3. Dynamic Capstone Project Recommendations")
+    st.code("""
 MATCH (p:Project)-[:DEVELOPS_SKILL]->(s:Skill)
 WHERE s.name IN $missing_skills
 RETURN p.id AS id, p.name AS name, p.difficulty AS difficulty,
-       p.github_template AS url, collect(s.name) AS matched_skills;
+       p.github_template AS url, collect(s.name) AS matched_skills
+ORDER BY size(matched_skills) DESC;
     """, language="cypher")
 
-# Footer
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+# ==============================================================================
+# FOOTER
+# ==============================================================================
 st.markdown("""
-<div style="text-align:center; padding:24px 0 10px 0; font-size:0.78rem; color:#98a2b3;">
-    SkillGraph AI • <b>Neo4j × hackFront India Graph Builder Build Sprint</b> • Designed in Flux Bento Aesthetic
+<div style="text-align:center; padding:28px 0 10px 0; font-size:0.8rem; color:#94A3B8;">
+    SkillGraph AI • Powered by <b>Neo4j Aura</b> & <b>Streamlit</b> • Designed for hackFront India Graph Builder Build Sprint
 </div>
 """, unsafe_allow_html=True)
