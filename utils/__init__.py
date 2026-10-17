@@ -10,7 +10,8 @@ from .validators import (
     validate_career_name,
     validate_weekly_hours,
     validate_neo4j_credentials,
-    validate_graph_structure
+    validate_graph_structure,
+    validate_database_roadmap_readiness
 )
 from .error_handlers import (
     SkillGraphError,
@@ -29,6 +30,7 @@ __all__ = [
     "validate_weekly_hours",
     "validate_neo4j_credentials",
     "validate_graph_structure",
+    "validate_database_roadmap_readiness",
     "SkillGraphError",
     "DatabaseConnectionError",
     "InvalidGraphSchemaError",
