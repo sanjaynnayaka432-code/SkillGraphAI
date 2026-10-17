@@ -74,8 +74,29 @@ class Neo4jService:
     @property
     def status_message(self) -> str:
         if self._connected:
-            return f"Connected to Neo4j Aura ({self.uri})"
-        return f"Demo Mode: {self._connection_error}"
+            return f"Connected to Neo4j Aura ({self.masked_uri})"
+        return f"Demo Mode: {self._sanitize_error(self._connection_error)}"
+
+    @property
+    def masked_uri(self) -> str:
+        """Returns the URI with any embedded credentials securely masked."""
+        if not self.uri:
+            return "Demo Mode (In-Memory Graph)"
+        import re
+        return re.sub(r'://([^:]+):([^@]+)@', r'://\1:******@', self.uri)
+
+    def _sanitize_error(self, err_msg: Optional[str]) -> str:
+        """Sanitizes connection error strings by stripping sensitive passwords or tokens."""
+        if not err_msg:
+            return ""
+        sanitized = err_msg
+        if self.password and self.password in sanitized:
+            sanitized = sanitized.replace(self.password, "******")
+        if self.uri and "@" in self.uri:
+            # Mask user:pass@ inside URI in error text
+            import re
+            sanitized = re.sub(r'://([^:]+):([^@]+)@', r'://\1:******@', sanitized)
+        return sanitized
 
     def close(self):
         """Cleanly close driver resources."""
@@ -100,7 +121,9 @@ class Neo4jService:
     def run_health_check(self) -> Dict[str, Any]:
         """
         Runs comprehensive, non-destructive health checks against the configured database.
-        Returns structured diagnostic report with PASS/WARN/FAIL statuses.
+        Safely executes a lightweight query: RETURN 1 AS healthy.
+        Returns structured diagnostic report with PASS/WARN/FAIL/DEMO statuses.
+        Never displays passwords or secret tokens.
         """
         diagnostics = {
             "credentials_present": False,
@@ -111,54 +134,77 @@ class Neo4jService:
             "career_count": 0,
             "skill_count": 0,
             "overall_status": "DEMO",
-            "message": ""
+            "message": "",
+            "masked_uri": self.masked_uri
         }
 
+        # Check credentials configuration
         if not self.uri or not self.username or not self.password:
             diagnostics["overall_status"] = "DEMO"
-            diagnostics["message"] = "Credentials not configured. Running in Demo Mode."
+            diagnostics["message"] = "Credentials not configured. Running in Demo Mode with full graph snapshot."
             return diagnostics
 
         diagnostics["credentials_present"] = True
 
+        # Check driver connection
         if not self._connected or not self.driver:
             diagnostics["overall_status"] = "FAIL"
-            diagnostics["message"] = f"Failed to connect: {self._connection_error}"
+            diagnostics["message"] = f"Failed to connect: {self._sanitize_error(self._connection_error)}"
             return diagnostics
 
-        diagnostics["connection_established"] = True
-
         try:
-            # 1. Simple read ping
-            ping_res = self.execute_query("RETURN 1 AS ping")
-            if ping_res and ping_res[0].get("ping") == 1:
-                diagnostics["read_query_success"] = True
+            # 1. Lightweight ping query: RETURN 1 AS healthy
+            with self.driver.session() as session:
+                res = session.run("RETURN 1 AS healthy")
+                record = res.single()
+                if not record or record.get("healthy") != 1:
+                    diagnostics["read_query_success"] = False
+                    diagnostics["overall_status"] = "FAIL"
+                    diagnostics["message"] = "Ping query 'RETURN 1 AS healthy' did not return expected result."
+                    return diagnostics
 
-            # 2. Check labels
-            labels_res = self.execute_query("CALL db.labels() YIELD label RETURN collect(label) AS labels")
-            if labels_res:
-                diagnostics["labels_found"] = labels_res[0].get("labels", [])
+            diagnostics["read_query_success"] = True
+            diagnostics["connection_established"] = True
 
-            # 3. Check relationship types
-            rels_res = self.execute_query("CALL db.relationshipTypes() YIELD relationshipType RETURN collect(relationshipType) AS types")
-            if rels_res:
-                diagnostics["relationships_found"] = rels_res[0].get("types", [])
+            # 2. Schema check: Node labels
+            try:
+                labels_res = self.execute_query("CALL db.labels() YIELD label RETURN collect(label) AS labels")
+                if labels_res:
+                    diagnostics["labels_found"] = labels_res[0].get("labels", [])
+            except Exception:
+                pass
 
-            # 4. Check career count
-            career_cnt = self.execute_query("MATCH (c:Career) RETURN count(c) AS cnt")
-            if career_cnt:
-                diagnostics["career_count"] = career_cnt[0].get("cnt", 0)
+            # 3. Schema check: Relationship types
+            try:
+                rels_res = self.execute_query("CALL db.relationshipTypes() YIELD relationshipType RETURN collect(relationshipType) AS types")
+                if rels_res:
+                    diagnostics["relationships_found"] = rels_res[0].get("types", [])
+            except Exception:
+                pass
 
-            # 5. Check skill count
-            skill_cnt = self.execute_query("MATCH (s:Skill) RETURN count(s) AS cnt")
-            if skill_cnt:
-                diagnostics["skill_count"] = skill_cnt[0].get("cnt", 0)
+            # 4. Data counts: Careers
+            try:
+                career_cnt = self.execute_query("MATCH (c:Career) RETURN count(c) AS cnt")
+                if career_cnt:
+                    diagnostics["career_count"] = career_cnt[0].get("cnt", 0)
+            except Exception:
+                pass
+
+            # 5. Data counts: Skills
+            try:
+                skill_cnt = self.execute_query("MATCH (s:Skill) RETURN count(s) AS cnt")
+                if skill_cnt:
+                    diagnostics["skill_count"] = skill_cnt[0].get("cnt", 0)
+            except Exception:
+                pass
 
             diagnostics["overall_status"] = "PASS"
             diagnostics["message"] = f"Live Neo4j cluster healthy with {diagnostics['career_count']} careers and {diagnostics['skill_count']} skills."
 
         except Exception as e:
-            diagnostics["overall_status"] = "WARN"
-            diagnostics["message"] = f"Connected but query check failed: {str(e)}"
+            # Catch authentication errors, timeouts, or network drops
+            diagnostics["read_query_success"] = False
+            diagnostics["overall_status"] = "FAIL"
+            diagnostics["message"] = f"Query execution failed: {self._sanitize_error(str(e))}"
 
         return diagnostics

@@ -28,6 +28,14 @@ class Neo4jClient(Neo4jService):
     def run_query(self, query: str, parameters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         return self.execute_query(query, parameters)
 
+    def run_health_check(self) -> Dict[str, Any]:
+        """
+        Runs comprehensive, non-destructive health checks against the configured database.
+        Safely executes a lightweight query such as RETURN 1 AS healthy.
+        Never displays passwords or other secrets in diagnostics output.
+        """
+        return super().run_health_check()
+
 
 class SkillGraphService:
     """Unified facade wrapping modular Career, Skill, Roadmap, and Project services."""
@@ -42,6 +50,27 @@ class SkillGraphService:
     @property
     def is_live_mode(self) -> bool:
         return self.client.is_live_mode
+
+    @property
+    def masked_uri(self) -> str:
+        return getattr(self.client, "masked_uri", "Demo Mode")
+
+    def run_health_check(self) -> Dict[str, Any]:
+        """Safely executes database health check via client."""
+        if hasattr(self.client, "run_health_check"):
+            return self.client.run_health_check()
+        return {
+            "credentials_present": False,
+            "connection_established": False,
+            "read_query_success": False,
+            "labels_found": [],
+            "relationships_found": [],
+            "career_count": 0,
+            "skill_count": 0,
+            "overall_status": "DEMO",
+            "message": "Demo Mode active.",
+            "masked_uri": self.masked_uri
+        }
 
     def get_careers(self) -> List[Dict[str, Any]]:
         return self.careers.get_all_careers()

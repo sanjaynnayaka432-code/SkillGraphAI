@@ -543,10 +543,11 @@ with st.sidebar:
 
     # Database Connection Status
     if service.is_live_mode:
+        masked_display = getattr(service, "masked_uri", getattr(service.client, "masked_uri", "Connected"))
         st.markdown(f"""
         <div style="background:#E8F8F2; border:1px solid #16A875; border-radius:12px; padding:10px; font-size:0.78rem; color:#16A875;">
             <b>🟢 Connected to Neo4j Aura</b><br>
-            <span style="font-size:0.7rem; color:#475467;">{service.client.uri}</span>
+            <span style="font-size:0.7rem; color:#475467;">{masked_display}</span>
         </div>
         """, unsafe_allow_html=True)
     else:

@@ -54,6 +54,32 @@ class TestNeo4jConfiguration:
         assert report["connection_established"] is False
         assert report["overall_status"] == "FAIL"
 
+    def test_neo4j_client_facade_health_check(self):
+        import graph_db
+        client = graph_db.Neo4jClient(None, None, None)
+        assert hasattr(client, "run_health_check")
+        report = client.run_health_check()
+        assert report["overall_status"] == "DEMO"
+        assert report["credentials_present"] is False
+        assert "password" not in str(report).lower()
+
+    def test_diagnostics_suite_runs_without_crashing(self):
+        import graph_db
+        from components.diagnostics import run_application_checks
+        client = graph_db.Neo4jClient(None, None, None)
+        service = graph_db.SkillGraphService(client)
+        checks = run_application_checks(service)
+        assert len(checks) >= 11
+        for chk in checks:
+            assert chk["status"] in ("PASS", "WARN", "FAIL", "SKIPPED")
+            assert "password" not in chk["details"].lower()
+
+    def test_secret_masking_in_uri_and_status(self):
+        client = Neo4jService("neo4j+s://admin:SuperSecretPass123@xyz.databases.neo4j.io", "admin", "SuperSecretPass123")
+        assert "SuperSecretPass123" not in client.masked_uri
+        assert "******" in client.masked_uri
+        assert "SuperSecretPass123" not in client.status_message
+
     @pytest.mark.skipif(
         not os.environ.get("RUN_LIVE_NEO4J_TESTS"),
         reason="Live Neo4j Aura cluster tests skipped unless RUN_LIVE_NEO4J_TESTS=1 is set"
