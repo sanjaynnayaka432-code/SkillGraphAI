@@ -32,8 +32,14 @@ def render_career_coach_page(service: Any, analysis: Optional[Dict[str, Any]]):
     user_skills = st.session_state.get("selected_skills", ["Python", "Git"])
 
     # Check for live LLM configuration
-    has_openai = bool(os.environ.get("OPENAI_API_KEY") or (hasattr(st, "secrets") and "OPENAI_API_KEY" in st.secrets))
-    has_gemini = bool(os.environ.get("GEMINI_API_KEY") or (hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets))
+    secrets_dict = {}
+    try:
+        secrets_dict = dict(st.secrets)
+    except Exception:
+        secrets_dict = {}
+
+    has_openai = bool(os.environ.get("OPENAI_API_KEY") or secrets_dict.get("OPENAI_API_KEY"))
+    has_gemini = bool(os.environ.get("GEMINI_API_KEY") or secrets_dict.get("GEMINI_API_KEY"))
     has_live_llm = has_openai or has_gemini
 
     # Engine Status Badge
@@ -82,10 +88,11 @@ def render_career_coach_page(service: Any, analysis: Optional[Dict[str, Any]]):
 
     # Initialize chat history
     if "coach_messages" not in st.session_state:
+        user_display = st.session_state.get("user_profile_name", "there")
         st.session_state.coach_messages = [
             {
                 "role": "assistant",
-                "content": f"Hello {st.session_state.get('user_profile_name', 'Sanjay')}! I'm your SkillGraph AI Career Coach. I have your active goal set to **{c_target}** with {cov_pct}% readiness. How can I assist your learning plan today?"
+                "content": f"Hello {user_display}! I'm your SkillGraph AI Career Coach. I have your active goal set to **{c_target}** with {cov_pct}% readiness. How can I assist your learning plan today?"
             }
         ]
 

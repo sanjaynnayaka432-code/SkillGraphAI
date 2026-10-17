@@ -69,15 +69,23 @@ def render_settings_page(service: Any):
     st.markdown("</div>", unsafe_allow_html=True)
 
     # 2. User Profile & Preferences
-    st.markdown("""
+    from services.auth_service import get_current_user, clear_authenticated_session
+    from services.user_data_service import UserDataService
+
+    user_data_service = UserDataService()
+    auth_u = get_current_user()
+    current_name = auth_u.full_name if auth_u else st.session_state.get("user_profile_name", "User")
+    current_email = auth_u.email if auth_u else st.session_state.get("user_email", "Not configured")
+
+    st.markdown(f"""
     <div class="sg-card">
         <div class="sg-card-title">👤 User Profile & Learning Preferences</div>
-        <div class="sg-card-subtitle">Personalize your name, velocity targets, and career pacing.</div>
+        <div class="sg-card-subtitle">Personalize your name, velocity targets, and career pacing. Logged in as <b>{current_email}</b>.</div>
     """, unsafe_allow_html=True)
 
     p1, p2, p3 = st.columns(3)
     with p1:
-        prof_name = st.text_input("Display Name", value=st.session_state.get("user_profile_name", "Sanjay N"))
+        prof_name = st.text_input("Display Name", value=current_name)
     with p2:
         curr_hrs = st.session_state.get("weekly_hours", 15)
         new_hrs = st.number_input("Weekly Study Commitment (Hours)", min_value=1, max_value=80, value=curr_hrs, step=1)
@@ -87,12 +95,27 @@ def render_settings_page(service: Any):
         idx_edu = edu_list.index(curr_edu) if curr_edu in edu_list else 2
         new_edu = st.selectbox("Education Level", options=edu_list, index=idx_edu)
 
-    if st.button("Save Profile Preferences", use_container_width=True):
-        st.session_state.user_profile_name = prof_name
-        st.session_state.weekly_hours = new_hrs
-        st.session_state.education_level = new_edu
-        st.success("Preferences updated successfully!")
-        st.rerun()
+    col_save, col_logout = st.columns([2, 1])
+    with col_save:
+        if st.button("Save Profile Preferences", use_container_width=True, type="primary"):
+            st.session_state.user_profile_name = prof_name
+            st.session_state.weekly_hours = new_hrs
+            st.session_state.education_level = new_edu
+
+            # Persist to isolated user data store
+            if auth_u:
+                user_data = user_data_service.load_user_data(auth_u.id)
+                user_data["weekly_hours"] = new_hrs
+                user_data["education_level"] = new_edu
+                user_data_service.save_user_data(auth_u.id, user_data)
+
+            st.success("Preferences updated successfully!")
+            st.rerun()
+
+    with col_logout:
+        if st.button("🚪 Sign Out", key="settings_logout_btn", use_container_width=True):
+            clear_authenticated_session()
+            st.rerun()
 
     st.markdown("</div>", unsafe_allow_html=True)
 

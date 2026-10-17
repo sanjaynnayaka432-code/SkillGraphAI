@@ -27,6 +27,9 @@ from components.progress_tracker import render_progress_tracker_page
 from components.career_coach import render_career_coach_page
 from components.diagnostics import render_diagnostics_page
 from components.settings import render_settings_page
+from services.auth_service import AuthService, is_authenticated, get_current_user
+from services.user_data_service import UserDataService
+from components.auth import render_auth_page
 
 
 # ==============================================================================
@@ -43,6 +46,29 @@ st.set_page_config(
 st.markdown(get_global_css(), unsafe_allow_html=True)
 
 
+# Safely read secrets if available
+secrets_data = {}
+try:
+    secrets_data = dict(st.secrets)
+except Exception:
+    secrets_data = {}
+
+# Initialize Authentication & User Data Services
+auth_service = AuthService(secrets_data)
+user_data_service = UserDataService()
+
+
+# ==============================================================================
+# GATEWAY AUTHENTICATION CHECK: PROTECT ALL INTERNAL APPLICATION PAGES
+# ==============================================================================
+if not is_authenticated():
+    render_auth_page(auth_service=auth_service, user_data_service=user_data_service)
+    st.stop()
+
+# Retrieve verified authenticated user
+auth_user = get_current_user()
+
+
 # ==============================================================================
 # DATABASE SERVICE SINGLETON INITIALIZATION
 # ==============================================================================
@@ -57,43 +83,26 @@ def init_app_service(secrets_dict: Dict[str, Any], custom_uri=None, custom_user=
     return graph_db.SkillGraphService(client)
 
 
-# Safely read secrets if available
-secrets_data = {}
-try:
-    secrets_data = dict(st.secrets)
-except Exception:
-    secrets_data = {}
-
-
 # ==============================================================================
-# SESSION STATE INITIALIZATION
+# SESSION STATE INITIALIZATION & ISOLATED USER DATA LOADING
 # ==============================================================================
 if "active_page" not in st.session_state:
     st.session_state.active_page = "overview"
 
-if "user_profile_name" not in st.session_state:
-    st.session_state.user_profile_name = "Sanjay N"
-
-if "selected_career_target" not in st.session_state:
-    st.session_state.selected_career_target = "AI Engineer"
-
-if "selected_skills" not in st.session_state:
-    st.session_state.selected_skills = ["Python", "Git"]
-
-if "completed_skills" not in st.session_state:
-    st.session_state.completed_skills = ["Python", "Git"]
-
-if "in_progress_skills" not in st.session_state:
-    st.session_state.in_progress_skills = []
-
-if "completed_projects" not in st.session_state:
-    st.session_state.completed_projects = []
-
-if "weekly_hours" not in st.session_state:
-    st.session_state.weekly_hours = 15
-
-if "education_level" not in st.session_state:
-    st.session_state.education_level = "Bachelor's Degree"
+# Detect user change or initial login to load this user's isolated data
+if st.session_state.get("_active_user_id") != auth_user.id:
+    st.session_state._active_user_id = auth_user.id
+    user_data = user_data_service.load_user_data(auth_user.id)
+    st.session_state.user_profile_name = auth_user.full_name or "User"
+    st.session_state.user_email = auth_user.email
+    st.session_state.selected_career_target = user_data.get("selected_career_target", "AI Engineer")
+    st.session_state.selected_skills = list(user_data.get("selected_skills", ["Python", "Git"]))
+    st.session_state.completed_skills = list(user_data.get("completed_skills", ["Python", "Git"]))
+    st.session_state.in_progress_skills = list(user_data.get("in_progress_skills", []))
+    st.session_state.completed_projects = list(user_data.get("completed_projects", []))
+    st.session_state.weekly_hours = user_data.get("weekly_hours", 15)
+    st.session_state.education_level = user_data.get("education_level", "Bachelor's Degree")
+    st.session_state.analysis_results = None
 
 if "custom_neo4j_uri" not in st.session_state:
     st.session_state.custom_neo4j_uri = ""
@@ -103,6 +112,19 @@ if "custom_neo4j_user" not in st.session_state:
 
 if "custom_neo4j_pwd" not in st.session_state:
     st.session_state.custom_neo4j_pwd = ""
+
+
+# Auto-save changes back to user data store
+current_user_state = {
+    "selected_career_target": st.session_state.selected_career_target,
+    "selected_skills": st.session_state.selected_skills,
+    "completed_skills": st.session_state.completed_skills,
+    "in_progress_skills": st.session_state.in_progress_skills,
+    "completed_projects": st.session_state.completed_projects,
+    "weekly_hours": st.session_state.weekly_hours,
+    "education_level": st.session_state.education_level
+}
+user_data_service.save_user_data(auth_user.id, current_user_state)
 
 
 # Instantiate database service

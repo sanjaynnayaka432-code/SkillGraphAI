@@ -58,6 +58,41 @@ graph LR
 
 ---
 
+## 3. Authentication & User Data Isolation
+
+SkillGraph AI features a production-ready authentication gateway. All dashboard pages, career exploration graphs, and AI coaching tools require authentication before access.
+
+### Dual-Mode Authentication Architecture
+1. **Supabase Cloud Authentication (Recommended)**:
+   - Integrates with Supabase Auth using the official Python client.
+   - Configure `SUPABASE_URL` and `SUPABASE_KEY` (Anon Public Key) in `.streamlit/secrets.toml` or environment variables.
+   - Passwords and credentials are managed in Supabase Cloud.
+
+2. **Secure Local Bcrypt-Salted Auth Store (Active by Default)**:
+   - When Supabase credentials are not provided, SkillGraph AI operates seamlessly with a local cryptographic auth database (`data/user_auth.db`).
+   - Uses `bcrypt` with cryptographic salt generation. Passwords are never stored in plaintext.
+   - Validates email formats, enforces password length ($\ge 6$ chars), and prevents duplicate email registration.
+
+### User Data Isolation
+Each authenticated user has an isolated profile and progress records:
+- Selected target career pathway
+- Mastered and acquired competencies
+- Active in-progress skills
+- Weekly study pacing & estimated timeline
+- Completed capstone projects
+
+User data is keyed strictly to the authenticated user's stable unique ID, ensuring one user's private roadmap is never accessible to another user.
+
+---
+
+## 4. How to Create Your First Account
+1. Launch the app (`streamlit run app.py`).
+2. On the gateway page, click **Create an Account**.
+3. Enter your **Full Name**, **Email Address**, and a secure **Password** ($\ge 6$ characters).
+4. Click **Create Account**. Your session is immediately established and you are redirected to the personalized dashboard!
+5. To log out, click **🚪 Sign Out** in the sidebar navigation or in **Settings**.
+
+
 ## 3. How to Run Locally
 
 ### Prerequisites

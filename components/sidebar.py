@@ -18,11 +18,12 @@ def render_sidebar(
     """
     with st.sidebar:
         # Profile Area
-        st.markdown("""
+        user_name = st.session_state.get("user_profile_name", "User")
+        st.markdown(f"""
         <div class="sidebar-profile">
             <div class="profile-avatar">👨‍💻</div>
             <div>
-                <div class="profile-name">Sanjay N</div>
+                <div class="profile-name">{user_name}</div>
                 <div class="profile-sub">Career Navigator</div>
             </div>
         </div>

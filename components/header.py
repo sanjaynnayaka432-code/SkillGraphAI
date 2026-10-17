@@ -6,7 +6,7 @@ Renders top dashboard title and user badge pill.
 import streamlit as st
 
 
-def render_header(user_name: str = "Sanjay N"):
+def render_header(user_name: str = "User"):
     """Render top dashboard header with title and user badge."""
     st.markdown(f"""
     <div class="top-header-row">

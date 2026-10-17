@@ -16,9 +16,10 @@ def render_hero_banner(target_career: str, analysis: Dict[str, Any]):
     blocked_cnt = len(analysis["blocked_skills"])
     weeks = analysis["estimated_weeks"]
 
+    user_name = st.session_state.get("user_profile_name", "User")
     st.markdown(f"""
     <div class="hero-banner">
-        <div class="hero-greeting">Hi Sanjay N , your next required action</div>
+        <div class="hero-greeting">Hi {user_name}, your next required action</div>
         <div class="hero-heading">Your Next Career Move Starts Here: {target_career}</div>
         <div class="hero-desc">
             Understand where you stand today, identify the skills you need, and follow a graph-powered roadmap to your target career.

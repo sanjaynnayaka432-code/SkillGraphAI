@@ -11,6 +11,7 @@ from .progress_tracker import render_progress_tracker_page
 from .career_coach import render_career_coach_page
 from .diagnostics import render_diagnostics_page
 from .settings import render_settings_page
+from .auth import render_auth_page
 
 # Legacy exports for backwards compatibility
 from .header import render_header
@@ -38,6 +39,7 @@ __all__ = [
     "render_career_coach_page",
     "render_diagnostics_page",
     "render_settings_page",
+    "render_auth_page",
     # Legacy
     "render_header",
     "render_sidebar",
