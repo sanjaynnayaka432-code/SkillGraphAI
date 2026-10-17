@@ -2,11 +2,9 @@
 SkillGraph AI — Personalized Career Navigator
 Neo4j × hackFront India Graph Builder Build Sprint
 
-Application Entry Point & Coordinator:
-- Page Configuration & Stylesheet Injection
-- Global Session State Management
-- High-level Navigation & Component Coordination
-- System Health Diagnostics Integration
+Two-Stage User Flow:
+STAGE 1 — CAREER INPUT PAGE (Only page visible on initial load)
+STAGE 2 — PERSONALIZED ANALYSIS RESULTS (Appears only after clicking "⚡ Analyze My Career Path")
 """
 
 import streamlit as st
@@ -14,7 +12,6 @@ from typing import Dict, Any, List
 
 import graph_db
 from components.header import render_header
-from components.sidebar import render_sidebar
 from components.metrics import render_hero_banner, render_kpi_cards
 from components.skill_gap import render_skill_gap_analysis
 from components.learning_roadmap import render_learning_roadmap
@@ -22,6 +19,7 @@ from components.project_cards import render_project_recommendations
 from components.career_exploration import render_career_exploration
 from components.career_graph import render_knowledge_graph
 from components.diagnostics import render_diagnostics_page
+from components.career_input import render_career_input_form
 
 # ==============================================================================
 # STREAMLIT PAGE CONFIGURATION
@@ -52,7 +50,7 @@ st.markdown("""
 
     /* Main container max width & spacing */
     .block-container {
-        padding-top: 1.2rem !important;
+        padding-top: 1.5rem !important;
         padding-bottom: 3.5rem !important;
         max-width: 1440px;
     }
@@ -138,6 +136,14 @@ st.markdown("""
         font-size: 0.7rem;
         color: #6B7280;
         font-weight: 600;
+    }
+
+    /* Back Button Banner */
+    .back-btn-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
     }
 
     /* Top Dashboard Header */
@@ -444,22 +450,6 @@ st.markdown("""
         background-color: #EDE9FF !important;
         color: #7955E8 !important;
     }
-
-    /* Primary Gradient Button */
-    div.stButton > button:first-child {
-        background: linear-gradient(135deg, #2878F0 0%, #7955E8 100%) !important;
-        color: #FFFFFF !important;
-        border: none !important;
-        border-radius: 12px !important;
-        font-weight: 700 !important;
-        padding: 10px 20px !important;
-        box-shadow: 0 4px 14px rgba(40, 120, 240, 0.3) !important;
-        transition: transform 0.15s ease !important;
-    }
-    div.stButton > button:first-child:hover {
-        transform: translateY(-1px) !important;
-        box-shadow: 0 6px 18px rgba(40, 120, 240, 0.4) !important;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -485,15 +475,25 @@ try:
 except Exception:
     secrets_data = {}
 
-# Session state initialization
+# Session state initialization for stage management and selections
+if "current_stage" not in st.session_state:
+    st.session_state.current_stage = "input"  # "input" or "results"
+if "selected_career_target" not in st.session_state:
+    st.session_state.selected_career_target = "AI Engineer"
+if "selected_skills" not in st.session_state:
+    st.session_state.selected_skills = ["Python", "Git"]
+if "weekly_hours" not in st.session_state:
+    st.session_state.weekly_hours = 15
+if "education_level" not in st.session_state:
+    st.session_state.education_level = "Bachelor's Degree"
+if "analysis_results" not in st.session_state:
+    st.session_state.analysis_results = None
 if "custom_neo4j_uri" not in st.session_state:
     st.session_state.custom_neo4j_uri = ""
 if "custom_neo4j_user" not in st.session_state:
     st.session_state.custom_neo4j_user = ""
 if "custom_neo4j_pwd" not in st.session_state:
     st.session_state.custom_neo4j_pwd = ""
-if "selected_career_target" not in st.session_state:
-    st.session_state.selected_career_target = "AI Engineer"
 
 service = init_app_service(
     secrets_data,
@@ -510,113 +510,226 @@ all_skill_names = sorted([s["name"] for s in all_skills_data])
 
 
 # ==============================================================================
-# SIDEBAR NAVIGATION
+# SIDEBAR (BRAND, DATABASE STATUS & CREDENTIALS)
 # ==============================================================================
-target_career, existing_skills, weekly_hours, education_level, analyze_clicked = render_sidebar(
-    career_names=career_names,
-    all_skill_names=all_skill_names,
-    service=service,
-    default_career=st.session_state.selected_career_target
-)
-st.session_state.selected_career_target = target_career
-
-
-# ==============================================================================
-# CAREER GAP ANALYSIS & SUBGRAPH EXTRACTION
-# ==============================================================================
-analysis = graph_db.analyze_career_gap(
-    service=service,
-    career_name=target_career,
-    user_skills=existing_skills,
-    weekly_hours=weekly_hours,
-    education_level=education_level
-)
-subgraph = service.get_subgraph_data(target_career, existing_skills)
-
-
-# ==============================================================================
-# MAIN DASHBOARD CONTENT
-# ==============================================================================
-
-# 1. Header Area
-render_header(user_name="Sanjay N")
-
-# 2. Hero Banner
-render_hero_banner(target_career=target_career, analysis=analysis)
-
-# 3. 4 KPI Metrics Cards
-render_kpi_cards(analysis=analysis)
-
-st.markdown("<div style='height:20px;'></div>", unsafe_allow_html=True)
-
-
-# 4. Segmented Dashboard Navigation Tabs
-main_tabs = st.tabs([
-    "📊 Skill Gap Analysis",
-    "🗺️ Learning Roadmap",
-    "💻 Recommended Projects",
-    "🧭 Explore Careers",
-    "🕸️ Knowledge Graph",
-    "🔍 Judge Cypher Inspector",
-    "🛡️ System Health & Validation"
-])
-
-with main_tabs[0]:
-    render_skill_gap_analysis(analysis=analysis)
-
-with main_tabs[1]:
-    render_learning_roadmap(analysis=analysis, weekly_hours=weekly_hours)
-
-with main_tabs[2]:
-    render_project_recommendations(analysis=analysis)
-
-with main_tabs[3]:
-    render_career_exploration(careers_data=careers_data, existing_skills=existing_skills, service=service)
-
-with main_tabs[4]:
-    render_knowledge_graph(subgraph_data=subgraph)
-
-with main_tabs[5]:
+with st.sidebar:
     st.markdown("""
-    <div class="saas-card">
-        <div class="saas-card-title">🔍 Hackathon Judges: View Live Cypher Queries</div>
-        <div class="saas-card-subtitle">
-            Demonstrates real Cypher traversal patterns executed against the Neo4j Graph Database.
+    <div class="sidebar-profile">
+        <div class="profile-avatar">👨‍💻</div>
+        <div>
+            <div class="profile-name">Sanjay N</div>
+            <div class="profile-sub">Career Navigator</div>
         </div>
+    </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("#### 1. Career Requirements Traversal")
-    st.code("""
+    st.markdown("""
+    <div class="sidebar-brand">
+        <div class="brand-icon">⚡</div>
+        <div>
+            <div class="brand-text">SkillGraph AI</div>
+            <div class="brand-tagline">Navigate Your Future</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<hr style='border:none; border-top:1px solid #E2E8F0; margin:12px 0 16px 0;'/>", unsafe_allow_html=True)
+
+    if st.session_state.current_stage == "results":
+        if st.button("← Back to Career Setup", key="sidebar_back_btn", use_container_width=True):
+            st.session_state.current_stage = "input"
+            st.rerun()
+        st.markdown("<hr style='border:none; border-top:1px solid #E2E8F0; margin:12px 0 16px 0;'/>", unsafe_allow_html=True)
+
+    # Database Connection Status
+    if service.is_live_mode:
+        st.markdown(f"""
+        <div style="background:#E8F8F2; border:1px solid #16A875; border-radius:12px; padding:10px; font-size:0.78rem; color:#16A875;">
+            <b>🟢 Connected to Neo4j Aura</b><br>
+            <span style="font-size:0.7rem; color:#475467;">{service.client.uri}</span>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div style="background:#FFF7EC; border:1px solid #F4A62A; border-radius:12px; padding:10px; font-size:0.78rem; color:#B45309;">
+            <b>⚡ Demo Mode Active</b><br>
+            <span style="font-size:0.7rem; color:#6B7280;">Graph snapshot loaded. Connect live Neo4j Aura below.</span>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with st.expander("⚙️ Neo4j Database Credentials"):
+        new_uri = st.text_input("NEO4J_URI", value=st.session_state.custom_neo4j_uri or "")
+        new_user = st.text_input("NEO4J_USERNAME", value=st.session_state.custom_neo4j_user or "neo4j")
+        new_pwd = st.text_input("NEO4J_PASSWORD", type="password", value=st.session_state.custom_neo4j_pwd)
+        if st.button("Connect Live Cluster", use_container_width=True):
+            st.session_state.custom_neo4j_uri = new_uri
+            st.session_state.custom_neo4j_user = new_user
+            st.session_state.custom_neo4j_pwd = new_pwd
+            st.cache_resource.clear()
+            st.rerun()
+
+    st.markdown("""
+    <div style="text-align:center; font-size:0.7rem; color:#94A3B8; margin-top:20px;">
+        v1.3.0 • Neo4j × hackFront India Build Sprint
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# ==============================================================================
+# TWO-STAGE USER FLOW ROUTING
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# STAGE 1: CAREER INPUT PAGE (Only page shown initially)
+# ------------------------------------------------------------------------------
+if st.session_state.current_stage == "input":
+    submitted, target_career, selected_skills, weekly_hours, education_level = render_career_input_form(
+        career_names=career_names,
+        all_skill_names=all_skill_names,
+        initial_career=st.session_state.selected_career_target,
+        initial_skills=st.session_state.selected_skills,
+        initial_hours=st.session_state.weekly_hours,
+        initial_education=st.session_state.education_level
+    )
+
+    if submitted:
+        if not target_career:
+            st.error("Please select a target career pathway.")
+        else:
+            # Save selections in session state
+            st.session_state.selected_career_target = target_career
+            st.session_state.selected_skills = selected_skills
+            st.session_state.weekly_hours = weekly_hours
+            st.session_state.education_level = education_level
+
+            # Execute graph analysis with loading indicator
+            with st.spinner("Navigating Neo4j knowledge graph and calculating prerequisite roadmap..."):
+                analysis = graph_db.analyze_career_gap(
+                    service=service,
+                    career_name=target_career,
+                    user_skills=selected_skills,
+                    weekly_hours=weekly_hours,
+                    education_level=education_level
+                )
+                st.session_state.analysis_results = analysis
+                st.session_state.current_stage = "results"
+                st.rerun()
+
+# ------------------------------------------------------------------------------
+# STAGE 2: PERSONALIZED ANALYSIS RESULTS (Only shown after clicking Analyze)
+# ------------------------------------------------------------------------------
+elif st.session_state.current_stage == "results":
+    analysis = st.session_state.analysis_results
+    if not analysis:
+        # Fallback if state was somehow cleared
+        analysis = graph_db.analyze_career_gap(
+            service=service,
+            career_name=st.session_state.selected_career_target,
+            user_skills=st.session_state.selected_skills,
+            weekly_hours=st.session_state.weekly_hours,
+            education_level=st.session_state.education_level
+        )
+        st.session_state.analysis_results = analysis
+
+    subgraph = service.get_subgraph_data(
+        st.session_state.selected_career_target,
+        st.session_state.selected_skills
+    )
+
+    # Top Navigation Row with Back Button
+    col_back, col_space = st.columns([1, 4])
+    with col_back:
+        if st.button("← Back to Career Setup", key="main_back_btn"):
+            st.session_state.current_stage = "input"
+            st.rerun()
+
+    # 1. Header Area
+    render_header(user_name="Sanjay N")
+
+    # 2. Hero Banner
+    render_hero_banner(
+        target_career=st.session_state.selected_career_target,
+        analysis=analysis
+    )
+
+    # 3. 4 KPI Metrics Cards
+    render_kpi_cards(analysis=analysis)
+
+    st.markdown("<div style='height:20px;'></div>", unsafe_allow_html=True)
+
+    # 4. Segmented Dashboard Navigation Tabs
+    main_tabs = st.tabs([
+        "📊 Skill Gap Analysis",
+        "🗺️ Learning Roadmap",
+        "💻 Recommended Projects",
+        "🧭 Explore Careers",
+        "🕸️ Knowledge Graph",
+        "🔍 Judge Cypher Inspector",
+        "🛡️ System Health & Validation"
+    ])
+
+    with main_tabs[0]:
+        render_skill_gap_analysis(analysis=analysis)
+
+    with main_tabs[1]:
+        render_learning_roadmap(
+            analysis=analysis,
+            weekly_hours=st.session_state.weekly_hours
+        )
+
+    with main_tabs[2]:
+        render_project_recommendations(analysis=analysis)
+
+    with main_tabs[3]:
+        render_career_exploration(
+            careers_data=careers_data,
+            existing_skills=st.session_state.selected_skills,
+            service=service
+        )
+
+    with main_tabs[4]:
+        render_knowledge_graph(subgraph_data=subgraph)
+
+    with main_tabs[5]:
+        st.markdown("""
+        <div class="saas-card">
+            <div class="saas-card-title">🔍 Hackathon Judges: View Live Cypher Queries</div>
+            <div class="saas-card-subtitle">
+                Demonstrates real Cypher traversal patterns executed against the Neo4j Graph Database.
+            </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("#### 1. Career Requirements Traversal")
+        st.code("""
 MATCH (c:Career {name: $career_name})-[r:REQUIRES_SKILL]->(s:Skill)
 RETURN s.name AS name, s.category AS category, s.difficulty AS difficulty,
        s.estimated_hours AS estimated_hours, r.importance AS importance
 ORDER BY s.name;
-    """, language="cypher")
+        """, language="cypher")
 
-    st.markdown("#### 2. Prerequisite Dependencies Traversal")
-    st.code("""
+        st.markdown("#### 2. Prerequisite Dependencies Traversal")
+        st.code("""
 MATCH (p:Skill)-[:PREREQUISITE_OF]->(a:Skill)
 RETURN p.name AS prerequisite, a.name AS advanced;
-    """, language="cypher")
+        """, language="cypher")
 
-    st.markdown("#### 3. Dynamic Capstone Project Recommendations")
-    st.code("""
+        st.markdown("#### 3. Dynamic Capstone Project Recommendations")
+        st.code("""
 MATCH (p:Project)-[:DEVELOPS_SKILL]->(s:Skill)
 WHERE s.name IN $missing_skills
 RETURN p.id AS id, p.name AS name, p.difficulty AS difficulty,
        p.github_template AS url, collect(s.name) AS matched_skills
 ORDER BY size(matched_skills) DESC;
-    """, language="cypher")
+        """, language="cypher")
 
-    st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
-with main_tabs[6]:
-    render_diagnostics_page(service=service)
+    with main_tabs[6]:
+        render_diagnostics_page(service=service)
 
-
-# Footer
-st.markdown("""
-<div style="text-align:center; padding:28px 0 10px 0; font-size:0.8rem; color:#94A3B8;">
-    SkillGraph AI • Powered by <b>Neo4j Aura</b> & <b>Streamlit</b> • Designed for hackFront India Graph Builder Build Sprint
-</div>
-""", unsafe_allow_html=True)
+    # Footer
+    st.markdown("""
+    <div style="text-align:center; padding:28px 0 10px 0; font-size:0.8rem; color:#94A3B8;">
+        SkillGraph AI • Powered by <b>Neo4j Aura</b> & <b>Streamlit</b> • Designed for hackFront India Graph Builder Build Sprint
+    </div>
+    """, unsafe_allow_html=True)

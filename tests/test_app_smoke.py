@@ -54,3 +54,32 @@ class TestAppSmoke:
         assert isinstance(html_out, str)
         assert "vis.Network" in html_out
         assert "mynetwork" in html_out
+
+    def test_career_input_education_options(self):
+        from components.career_input import EDUCATION_OPTIONS
+        expected_options = [
+            "High School",
+            "Diploma",
+            "Bachelor's Degree",
+            "Master's Degree",
+            "PhD",
+            "Self-taught"
+        ]
+        assert EDUCATION_OPTIONS == expected_options
+
+    def test_components_importability(self):
+        from components import (
+            render_header,
+            render_hero_banner,
+            render_kpi_cards,
+            render_skill_gap_analysis,
+            render_learning_roadmap,
+            render_project_recommendations,
+            render_career_exploration,
+            render_knowledge_graph,
+            render_diagnostics_page,
+            render_career_input_form
+        )
+        assert callable(render_career_input_form)
+        assert callable(render_diagnostics_page)
+

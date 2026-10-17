@@ -8,6 +8,7 @@ from .project_cards import render_project_recommendations
 from .career_exploration import render_career_exploration
 from .career_graph import render_knowledge_graph
 from .diagnostics import render_diagnostics_page
+from .career_input import render_career_input_form
 
 __all__ = [
     "render_header",
@@ -19,5 +20,6 @@ __all__ = [
     "render_project_recommendations",
     "render_career_exploration",
     "render_knowledge_graph",
-    "render_diagnostics_page"
+    "render_diagnostics_page",
+    "render_career_input_form"
 ]
