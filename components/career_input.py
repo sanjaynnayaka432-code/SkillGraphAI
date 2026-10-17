@@ -1,7 +1,9 @@
 """
 SkillGraph AI — Career Input Page Component (Stage 1)
-Renders the clean, centered 4-section career setup form with blue skill tags,
-interactive slider, and full-width gradient analyze action button.
+Renders the clean, centered career setup form with restored header:
+Title: "Build Your Career Roadmap"
+Subtitle: "Discover your skill gaps and create a personalized learning path."
+Followed directly by the 4 input sections and the prominent gradient Analyze button.
 """
 
 import streamlit as st
@@ -27,42 +29,31 @@ def render_career_input_form(
     initial_education: str = "Bachelor's Degree"
 ) -> Tuple[bool, str, List[str], int, str]:
     """
-    Renders Stage 1: The centered 4-section career input page.
+    Renders Stage 1: The centered career input page.
     Returns: (submitted, target_career, selected_skills, weekly_hours, education_level).
     """
     if initial_skills is None:
         initial_skills = [s for s in ["Python", "Git"] if s in all_skill_names]
 
-    # Custom styling for Stage 1 form elements
+    # Custom styling for Stage 1 elements
     st.markdown("""
     <style>
-        /* Stage 1 Centered Container */
-        .stage1-wrapper {
-            max-width: 760px;
-            margin: 0 auto 30px auto;
+        /* Form Card Container using Streamlit native bordered container */
+        [data-testid="stVerticalBlockBorderWrapper"] {
+            background-color: #FFFFFF !important;
+            border: 1px solid rgba(226, 232, 240, 0.9) !important;
+            border-radius: 24px !important;
+            padding: 32px 36px !important;
+            box-shadow: 0 10px 30px rgba(40, 120, 240, 0.05) !important;
         }
 
+        /* Page Header */
         .stage1-header {
             text-align: center;
-            margin-bottom: 28px;
-        }
-        .stage1-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: #EDF4FF;
-            border: 1px solid rgba(40, 120, 240, 0.25);
-            color: #2878F0;
-            padding: 5px 14px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 800;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            margin-bottom: 10px;
+            margin-bottom: 24px;
         }
         .stage1-title {
-            font-size: 2.25rem;
+            font-size: 2.35rem;
             font-weight: 800;
             color: #18223B;
             letter-spacing: -0.03em;
@@ -70,28 +61,20 @@ def render_career_input_form(
             margin-bottom: 8px;
         }
         .stage1-subtitle {
-            font-size: 0.95rem;
-            color: #6B7280;
+            font-size: 1.05rem;
+            color: #64748B;
+            font-weight: 500;
+            line-height: 1.5;
             max-width: 600px;
             margin: 0 auto;
-            line-height: 1.5;
         }
 
-        /* Form Card */
-        .stage1-card {
-            background: #FFFFFF;
-            border: 1px solid rgba(226, 232, 240, 0.85);
-            border-radius: 24px;
-            padding: 34px 38px;
-            box-shadow: 0 10px 30px rgba(40, 120, 240, 0.05);
-        }
-
-        /* Input section headers */
+        /* Section Header with Hours Pill */
         .input-section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
         .input-label {
             font-size: 0.95rem;
@@ -101,15 +84,13 @@ def render_career_input_form(
             align-items: center;
             gap: 6px;
         }
-
-        /* Prominent value pill for Weekly Learning Hours */
         .hours-badge-pill {
             background: #EDE9FF;
             color: #7955E8;
             border: 1px solid rgba(121, 85, 232, 0.3);
             font-size: 0.82rem;
             font-weight: 800;
-            padding: 4px 12px;
+            padding: 3px 12px;
             border-radius: 16px;
         }
 
@@ -160,24 +141,21 @@ def render_career_input_form(
     weekly_hours = initial_hours
     education_level = initial_education
 
-    # Stage 1 Centered Layout
+    # Centered Column Layout (Comfortable desktop width)
     _, center_col, _ = st.columns([1, 6, 1])
 
     with center_col:
-        st.markdown("""
-        <div class="stage1-wrapper">
+        # Wrap everything in a single clean bordered container (no empty boxes)
+        with st.container(border=True):
+            # Page Header
+            st.markdown("""
             <div class="stage1-header">
-                <div class="stage1-badge">⚡ AI-POWERED CAREER INTELLIGENCE</div>
-                <div class="stage1-title">Navigate Your Career Pathway</div>
+                <div class="stage1-title">Build Your Career Roadmap</div>
                 <div class="stage1-subtitle">
-                    Select your target role, declare your existing competencies, and generate a personalized graph-powered learning roadmap.
+                    Discover your skill gaps and create a personalized learning path.
                 </div>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        with st.container():
-            st.markdown('<div class="stage1-card">', unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
             # 1. Target Career Pathway
             career_index = 0
@@ -192,7 +170,7 @@ def render_career_input_form(
                 help="Select the career trajectory you wish to analyze based on industry knowledge graphs."
             )
 
-            st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
             # 2. Skills You Already Master
             selected_skills = st.multiselect(
@@ -203,13 +181,14 @@ def render_career_input_form(
                 help="Choose foundational or specialized skills you already know. Selected items appear as removable blue tags."
             )
 
-            st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
-            # 3. Weekly Learning Hours (Horizontal Slider with prominent number)
+            # 3. Weekly Learning Hours
+            current_hours = st.session_state.get("stage1_hours_slider", initial_hours)
             st.markdown(f"""
             <div class="input-section-header">
                 <span class="input-label">⏱️ Weekly Learning Hours</span>
-                <span class="hours-badge-pill">{st.session_state.get('stage1_hours_slider', initial_hours)} Hours / Week</span>
+                <span class="hours-badge-pill">{current_hours} Hours / Week</span>
             </div>
             """, unsafe_allow_html=True)
 
@@ -224,7 +203,7 @@ def render_career_input_form(
                 help="Estimated dedicated hours per week for skill acquisition and portfolio projects."
             )
 
-            st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
             # 4. Education Level
             edu_index = 2  # Default: Bachelor's Degree
@@ -239,11 +218,9 @@ def render_career_input_form(
                 help="Select your highest attained education level to tailor milestone pacing."
             )
 
-            st.markdown("<div style='height: 18px;'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
 
             # 5. Primary Action Button
             submitted = st.button("⚡ Analyze My Career Path", type="primary", use_container_width=True)
-
-            st.markdown('</div>', unsafe_allow_html=True)
 
     return submitted, target_career, selected_skills, weekly_hours, education_level
