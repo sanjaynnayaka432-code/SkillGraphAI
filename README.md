@@ -191,17 +191,67 @@ git push -u origin main
 
 ```
 SkillGraphAI/
-├── app.py                      # Main Streamlit dashboard & application
-├── graph_db.py                 # Neo4j driver queries & fallback demo engine
-├── graph_viz.py                # Vis.js interactive graph generator
+├── app.py                      # Main Streamlit dashboard coordinator
 ├── requirements.txt            # Minimal compatible Python dependencies
 ├── README.md                   # Comprehensive documentation & deployment guide
-├── .gitignore                  # Protects credentials and virtualenvs
+├── .gitignore                  # Protects credentials, virtualenvs & cache
+│
 ├── .streamlit/
-│   ├── config.toml             # Dark navy dashboard theme tokens
+│   ├── config.toml             # WhereUElevate SaaS theme tokens
 │   └── secrets.toml.example    # Credential template for Aura deployment
-└── database/
-    └── seed.cypher             # Idempotent MERGE script for graph population
+│
+├── database/
+│   └── seed.cypher             # Idempotent MERGE script for graph population
+│
+├── components/                 # Presentation layer (UI Rendering)
+│   ├── __init__.py
+│   ├── header.py               # Top dashboard navbar & user pill
+│   ├── sidebar.py              # Left navigation sidebar & credential modal
+│   ├── metrics.py              # Hero banner card & 4 white KPI cards
+│   ├── skill_gap.py            # Donut chart & Mastered/Ready/Blocked badges
+│   ├── learning_roadmap.py     # Connected vertical roadmap timeline
+│   ├── project_cards.py        # Capstone project recommendations
+│   ├── career_exploration.py   # 5-career trajectory exploration cards
+│   ├── career_graph.py         # Vis.js interactive network container
+│   └── diagnostics.py          # System Health & Validation diagnostic suite
+│
+├── services/                   # Business & Data Access layer
+│   ├── __init__.py
+│   ├── neo4j_service.py        # Single driver lifecycle, health checks & queries
+│   ├── career_service.py       # Career catalog & required skills mapping
+│   ├── skill_service.py        # Skill nodes & prerequisite graph traversal
+│   ├── roadmap_service.py      # Kahn's topological sort & blocker mapping
+│   ├── project_service.py      # Project ranking & learning resource matching
+│   └── demo_data.py            # Canonical graph dataset for demo & testing
+│
+├── utils/                      # Pure helper utilities
+│   ├── __init__.py
+│   ├── calculations.py         # Coverage % and timeline mathematical calculations
+│   ├── validators.py           # Schema, credential, and input validation
+│   └── error_handlers.py       # Sanitized error reporting (never exposing secrets)
+│
+└── tests/                      # Automated test suite (pytest)
+    ├── __init__.py
+    ├── test_calculations.py    # 19 mathematical & normalization unit tests
+    ├── test_skill_gap.py       # 4 deterministic skill gap analysis tests
+    ├── test_roadmap.py         # 5 topological sort & cycle detection tests
+    ├── test_projects.py        # 4 project ranking & resource retrieval tests
+    ├── test_neo4j.py           # 6 connection, credentials & health check tests
+    └── test_app_smoke.py       # 3 application smoke & visualizer tests
+```
+
+---
+
+## Running Automated Tests
+
+Run the full automated test suite using `pytest`:
+```bash
+pytest tests/ -v
+```
+
+To run with live Neo4j Aura integration tests enabled (requires valid credentials in environment):
+```bash
+RUN_LIVE_NEO4J_TESTS=1 pytest tests/ -v
 ```
 
 ---
@@ -209,3 +259,4 @@ SkillGraphAI/
 ## License
 
 Distributed under the MIT License. Built for the **Neo4j × hackFront India Graph Builder Build Sprint**.
+
