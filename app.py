@@ -1,14 +1,17 @@
 """
-SkillGraph AI — Career Intelligence Platform
+SkillGraph AI — Personalized Career Navigator
 Neo4j × hackFront India Graph Builder Build Sprint
 
-Minimalist, high-performance career intelligence platform inspired by Skill Graph:
-- Persistent 10-page sidebar navigation
-- Source-of-truth Neo4j property knowledge graph
-- Algorithmic prerequisite traversal & topological sorting
-- Portfolio capstone recommendations & velocity tracker
-- Context-aware AI Career Coach with honest fallback
-- Automated 27-check diagnostics & validation suite
+Minimalist, high-performance career intelligence platform:
+- Split-screen authentication with Google OAuth 2.0 & encrypted bcrypt local fallback
+- Persistent horizontal top navigation & sidebar navigation matching product reference
+- Interactive, scalable Vis.js Skill Graph workspace with hubs, circular nodes & real relationships
+- CV Parser & technical skill extractor with interactive review
+- Career Goals objective tracker linked to graph competencies
+- Personalized Learning Roadmap with Kahn's topological sort
+- Jobs & Skill Gap Alignment calculator with custom role analyzer
+- Multi-stage Job Applications pipeline tracker
+- Source-of-truth Neo4j property knowledge graph with multi-user isolation
 """
 
 import streamlit as st
@@ -16,9 +19,14 @@ from typing import Dict, Any, List
 
 import graph_db
 from components.shared import get_global_css
+from components.top_navigation import render_top_navigation
 from components.navigation import render_sidebar_navigation
 from components.dashboard import render_overview_dashboard
 from components.skill_graph import render_skill_graph_page
+from components.cv_page import render_cv_page
+from components.goals_page import render_goals_page
+from components.jobs_page import render_jobs_page
+from components.applications_page import render_applications_page
 from components.career_explorer import render_career_explorer_page
 from components.career_analysis import render_career_gap_analysis_page
 from components.learning_roadmap import render_learning_roadmap_page
@@ -29,6 +37,7 @@ from components.diagnostics import render_diagnostics_page
 from components.settings import render_settings_page
 from services.auth_service import AuthService, is_authenticated, get_current_user
 from services.user_data_service import UserDataService
+from services.user_graph_service import UserGraphService
 from components.auth import render_auth_page
 
 
@@ -39,7 +48,7 @@ st.set_page_config(
     page_title="Skill Graph — Career Intelligence",
     page_icon="⚡",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # Apply global design system stylesheet
@@ -83,11 +92,31 @@ def init_app_service(secrets_dict: Dict[str, Any], custom_uri=None, custom_user=
     return graph_db.SkillGraphService(client)
 
 
+# Instantiate database service
+if "custom_neo4j_uri" not in st.session_state:
+    st.session_state.custom_neo4j_uri = ""
+if "custom_neo4j_user" not in st.session_state:
+    st.session_state.custom_neo4j_user = ""
+if "custom_neo4j_pwd" not in st.session_state:
+    st.session_state.custom_neo4j_pwd = ""
+
+service = init_app_service(
+    secrets_data,
+    st.session_state.custom_neo4j_uri if st.session_state.custom_neo4j_uri else None,
+    st.session_state.custom_neo4j_user if st.session_state.custom_neo4j_user else None,
+    st.session_state.custom_neo4j_pwd if st.session_state.custom_neo4j_pwd else None
+)
+
+# Initialize User-Scoped Graph Service
+user_graph_service = UserGraphService(neo4j_service=service.client)
+user_graph_service.ensure_user_starter_graph(auth_user.id)
+
+
 # ==============================================================================
 # SESSION STATE INITIALIZATION & ISOLATED USER DATA LOADING
 # ==============================================================================
 if "active_page" not in st.session_state:
-    st.session_state.active_page = "overview"
+    st.session_state.active_page = "skill_graph"
 
 # Detect user change or initial login to load this user's isolated data
 if st.session_state.get("_active_user_id") != auth_user.id:
@@ -104,16 +133,6 @@ if st.session_state.get("_active_user_id") != auth_user.id:
     st.session_state.education_level = user_data.get("education_level", "Bachelor's Degree")
     st.session_state.analysis_results = None
 
-if "custom_neo4j_uri" not in st.session_state:
-    st.session_state.custom_neo4j_uri = ""
-
-if "custom_neo4j_user" not in st.session_state:
-    st.session_state.custom_neo4j_user = ""
-
-if "custom_neo4j_pwd" not in st.session_state:
-    st.session_state.custom_neo4j_pwd = ""
-
-
 # Auto-save changes back to user data store
 current_user_state = {
     "selected_career_target": st.session_state.selected_career_target,
@@ -125,15 +144,6 @@ current_user_state = {
     "education_level": st.session_state.education_level
 }
 user_data_service.save_user_data(auth_user.id, current_user_state)
-
-
-# Instantiate database service
-service = init_app_service(
-    secrets_data,
-    st.session_state.custom_neo4j_uri if st.session_state.custom_neo4j_uri else None,
-    st.session_state.custom_neo4j_user if st.session_state.custom_neo4j_user else None,
-    st.session_state.custom_neo4j_pwd if st.session_state.custom_neo4j_pwd else None
-)
 
 # Fetch career catalog & skill catalog from graph
 careers_data = service.get_careers()
@@ -153,24 +163,55 @@ if "analysis_results" not in st.session_state or st.session_state.analysis_resul
 
 
 # ==============================================================================
-# PERSISTENT SIDEBAR NAVIGATION
+# POST-LOGIN NAVIGATION (TOP BAR & OPTIONAL SIDEBAR)
 # ==============================================================================
-active_page = render_sidebar_navigation(service=service)
+top_active = render_top_navigation(service=service, user_graph_service=user_graph_service)
+
+# Optional sidebar navigation synchronization
+render_sidebar_navigation(service=service)
+
+active_page = st.session_state.active_page
 
 
 # ==============================================================================
-# 10 REAL PAGES ROUTING
+# PAGE ROUTING
 # ==============================================================================
-if active_page == "overview":
+if active_page == "skill_graph":
+    render_skill_graph_page(
+        service=service,
+        career_names=career_names,
+        user_graph_service=user_graph_service
+    )
+
+elif active_page == "cv":
+    render_cv_page(
+        user_graph_service=user_graph_service
+    )
+
+elif active_page == "goals":
+    render_goals_page(
+        user_graph_service=user_graph_service
+    )
+
+elif active_page == "jobs":
+    render_jobs_page(
+        user_graph_service=user_graph_service
+    )
+
+elif active_page == "applications":
+    render_applications_page(
+        user_graph_service=user_graph_service
+    )
+
+elif active_page in ("learning", "roadmap"):
+    render_learning_roadmap_page(
+        service=service
+    )
+
+elif active_page == "overview":
     render_overview_dashboard(
         service=service,
         analysis=st.session_state.analysis_results,
-        career_names=career_names
-    )
-
-elif active_page == "skill_graph":
-    render_skill_graph_page(
-        service=service,
         career_names=career_names
     )
 
@@ -185,11 +226,6 @@ elif active_page == "gap_analysis":
         service=service,
         career_names=career_names,
         all_skill_names=all_skill_names
-    )
-
-elif active_page == "roadmap":
-    render_learning_roadmap_page(
-        service=service
     )
 
 elif active_page == "projects":
@@ -221,10 +257,10 @@ elif active_page == "settings":
     )
 
 else:
-    render_overview_dashboard(
+    render_skill_graph_page(
         service=service,
-        analysis=st.session_state.analysis_results,
-        career_names=career_names
+        career_names=career_names,
+        user_graph_service=user_graph_service
     )
 
 
@@ -233,6 +269,6 @@ else:
 # ==============================================================================
 st.markdown("""
 <div style="text-align:center; padding:36px 0 12px 0; font-size:0.75rem; color:#9CA3AF; border-top:1px solid #E5E7EB; margin-top:36px;">
-    Skill Graph • Career Intelligence Platform • Powered by <b>Neo4j Aura</b> & <b>Streamlit</b> • Neo4j × hackFront India Build Sprint
+    Skill Graph • Personalized Career Navigator • Powered by <b>Neo4j Aura</b> & <b>Streamlit</b> • Neo4j × hackFront India Build Sprint
 </div>
 """, unsafe_allow_html=True)

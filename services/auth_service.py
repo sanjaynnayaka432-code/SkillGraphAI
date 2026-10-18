@@ -1,17 +1,19 @@
 """
 SkillGraph AI — Authentication Service
-Supports Supabase Auth as the primary provider with a secure local encrypted
-auth store (bcrypt salted hashing + SQLite) for local development and offline environments.
+Supports Google OAuth 2.0, Supabase Auth, and secure local encrypted
+auth store (bcrypt salted hashing + SQLite) for development and offline environments.
 """
 
 import os
 import re
 import sqlite3
 import uuid
+import urllib.parse
 from typing import Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 import streamlit as st
 import bcrypt
+import requests
 
 try:
     from supabase import create_client, Client
@@ -27,7 +29,7 @@ class AuthUser:
     id: str
     email: str
     full_name: str
-    provider: str  # 'supabase' or 'local_encrypted'
+    provider: str  # 'google', 'supabase', or 'local_encrypted'
     created_at: str
 
     def to_dict(self) -> Dict[str, Any]:
@@ -65,6 +67,7 @@ class LocalAuthStore:
                     email TEXT UNIQUE NOT NULL,
                     password_hash TEXT NOT NULL,
                     full_name TEXT NOT NULL,
+                    provider TEXT DEFAULT 'local_encrypted',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
@@ -78,7 +81,7 @@ class LocalAuthStore:
             """)
             conn.commit()
 
-    def create_user(self, name: str, email: str, password: str) -> Tuple[bool, Optional[str], Optional[AuthUser]]:
+    def create_user(self, name: str, email: str, password: str, provider: str = "local_encrypted") -> Tuple[bool, Optional[str], Optional[AuthUser]]:
         email_clean = email.strip().lower()
         name_clean = name.strip()
 
@@ -89,15 +92,15 @@ class LocalAuthStore:
         try:
             with self._get_connection() as conn:
                 conn.execute(
-                    "INSERT INTO users (id, email, password_hash, full_name) VALUES (?, ?, ?, ?)",
-                    (user_id, email_clean, hashed, name_clean)
+                    "INSERT INTO users (id, email, password_hash, full_name, provider) VALUES (?, ?, ?, ?, ?)",
+                    (user_id, email_clean, hashed, name_clean, provider)
                 )
                 conn.commit()
             user = AuthUser(
                 id=user_id,
                 email=email_clean,
                 full_name=name_clean,
-                provider="local_encrypted",
+                provider=provider,
                 created_at="just now"
             )
             return True, None, user
@@ -105,6 +108,44 @@ class LocalAuthStore:
             return False, "An account with this email address already exists.", None
         except Exception as e:
             return False, f"Registration failed: {str(e)}", None
+
+    def get_or_create_oauth_user(self, email: str, full_name: str, provider: str = "google") -> Tuple[bool, Optional[str], Optional[AuthUser]]:
+        """Handles Google OAuth login or auto-registration without password."""
+        email_clean = email.strip().lower()
+        name_clean = full_name.strip() if full_name else email_clean.split("@")[0].capitalize()
+
+        try:
+            with self._get_connection() as conn:
+                cur = conn.execute("SELECT id, email, full_name, provider, created_at FROM users WHERE email = ?", (email_clean,))
+                row = cur.fetchone()
+                if row:
+                    user = AuthUser(
+                        id=row["id"],
+                        email=row["email"],
+                        full_name=row["full_name"],
+                        provider=provider,
+                        created_at=str(row["created_at"])
+                    )
+                    return True, None, user
+
+                # Register new OAuth user
+                user_id = str(uuid.uuid4())
+                dummy_hash = bcrypt.hashpw(uuid.uuid4().hex.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+                conn.execute(
+                    "INSERT INTO users (id, email, password_hash, full_name, provider) VALUES (?, ?, ?, ?, ?)",
+                    (user_id, email_clean, dummy_hash, name_clean, provider)
+                )
+                conn.commit()
+                user = AuthUser(
+                    id=user_id,
+                    email=email_clean,
+                    full_name=name_clean,
+                    provider=provider,
+                    created_at="just now"
+                )
+                return True, None, user
+        except Exception as e:
+            return False, f"OAuth database error: {str(e)}", None
 
     def authenticate_user(self, email: str, password: str) -> Tuple[bool, Optional[str], Optional[AuthUser]]:
         email_clean = email.strip().lower()
@@ -154,6 +195,26 @@ class LocalAuthStore:
             pass
         return None
 
+    def get_user_by_email(self, email: str) -> Optional[AuthUser]:
+        try:
+            with self._get_connection() as conn:
+                cur = conn.execute(
+                    "SELECT id, email, full_name, created_at FROM users WHERE email = ?",
+                    (email.strip().lower(),)
+                )
+                row = cur.fetchone()
+            if row:
+                return AuthUser(
+                    id=row["id"],
+                    email=row["email"],
+                    full_name=row["full_name"],
+                    provider="local_encrypted",
+                    created_at=str(row["created_at"])
+                )
+        except Exception:
+            pass
+        return None
+
     def update_user_name(self, user_id: str, new_name: str) -> bool:
         try:
             with self._get_connection() as conn:
@@ -182,7 +243,7 @@ class LocalAuthStore:
 
 
 class AuthService:
-    """Unified Authentication Service managing Supabase and local encrypted fallback."""
+    """Unified Authentication Service managing Google OAuth, Supabase, and local encrypted fallback."""
 
     def __init__(self, secrets_dict: Optional[Dict[str, Any]] = None):
         self.secrets = secrets_dict or {}
@@ -215,6 +276,88 @@ class AuthService:
     @property
     def is_supabase_active(self) -> bool:
         return self.provider_mode == "supabase" and self.supabase_client is not None
+
+    # =========================================================================
+    # GOOGLE OAUTH 2.0 INTEGRATION
+    # =========================================================================
+    def get_google_client_id(self) -> Optional[str]:
+        return (
+            self.secrets.get("GOOGLE_CLIENT_ID")
+            or os.environ.get("GOOGLE_CLIENT_ID")
+        )
+
+    def get_google_client_secret(self) -> Optional[str]:
+        return (
+            self.secrets.get("GOOGLE_CLIENT_SECRET")
+            or os.environ.get("GOOGLE_CLIENT_SECRET")
+        )
+
+    def is_google_configured(self) -> bool:
+        cid = self.get_google_client_id()
+        sec = self.get_google_client_secret()
+        return bool(cid and sec and "YOUR_GOOGLE" not in cid)
+
+    def get_google_auth_url(self, redirect_uri: str, state: str = "skillgraph_auth") -> Optional[str]:
+        """Generates standard Google OAuth 2.0 authorization URL."""
+        client_id = self.get_google_client_id()
+        if not client_id:
+            return None
+
+        params = {
+            "client_id": client_id,
+            "redirect_uri": redirect_uri,
+            "response_type": "code",
+            "scope": "openid email profile",
+            "access_type": "offline",
+            "prompt": "select_account",
+            "state": state
+        }
+        return f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
+
+    def handle_google_callback(self, code: str, redirect_uri: str) -> Tuple[bool, Optional[str], Optional[AuthUser]]:
+        """Exchanges authorization code for token and profile from Google API."""
+        client_id = self.get_google_client_id()
+        client_secret = self.get_google_client_secret()
+
+        if not client_id or not client_secret:
+            return False, "Google OAuth credentials are not configured on the server.", None
+
+        try:
+            token_endpoint = "https://oauth2.googleapis.com/token"
+            data = {
+                "code": code,
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "redirect_uri": redirect_uri,
+                "grant_type": "authorization_code"
+            }
+            token_resp = requests.post(token_endpoint, data=data, timeout=10)
+            if token_resp.status_code != 200:
+                err_detail = token_resp.json().get("error_description", token_resp.text)
+                return False, f"Google token exchange failed: {err_detail}", None
+
+            token_data = token_resp.json()
+            access_token = token_data.get("access_token")
+
+            # Fetch Google user info
+            userinfo_resp = requests.get(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                headers={"Authorization": f"Bearer {access_token}"},
+                timeout=10
+            )
+            if userinfo_resp.status_code != 200:
+                return False, "Failed to retrieve user profile from Google.", None
+
+            info = userinfo_resp.json()
+            email = info.get("email")
+            name = info.get("name") or email.split("@")[0].capitalize()
+
+            if not email:
+                return False, "Google account did not return a valid email address.", None
+
+            return self.local_store.get_or_create_oauth_user(email, name, provider="google")
+        except Exception as e:
+            return False, f"Google OAuth process failed: {str(e)}", None
 
     @staticmethod
     def validate_email(email: str) -> bool:
@@ -348,7 +491,6 @@ class AuthService:
             except Exception as e:
                 print(f"[AuthService Warning] Supabase profile update error: {e}")
 
-        # Always update local store if record exists
         self.local_store.update_user_name(user.id, new_name.strip())
         return True
 
@@ -389,7 +531,8 @@ def clear_authenticated_session():
         "in_progress_skills",
         "completed_projects",
         "coach_messages",
-        "_roadmap_active_career"
+        "_roadmap_active_career",
+        "selected_node_id"
     ]
     for k in keys_to_clear:
         if k in st.session_state:
@@ -397,4 +540,4 @@ def clear_authenticated_session():
 
     st.session_state.authenticated_user = None
     st.session_state.auth_page_mode = "signin"
-    st.session_state.active_page = "overview"
+    st.session_state.active_page = "skill_graph"
