@@ -81,6 +81,13 @@ class LocalAuthStore:
             """)
             conn.commit()
 
+            # Automatic backwards-compatible migration for existing databases
+            try:
+                conn.execute("ALTER TABLE users ADD COLUMN provider TEXT DEFAULT 'local_encrypted'")
+                conn.commit()
+            except sqlite3.OperationalError:
+                pass
+
     def create_user(self, name: str, email: str, password: str, provider: str = "local_encrypted") -> Tuple[bool, Optional[str], Optional[AuthUser]]:
         email_clean = email.strip().lower()
         name_clean = name.strip()
